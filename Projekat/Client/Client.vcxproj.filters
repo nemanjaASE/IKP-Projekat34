@@ -16,18 +16,33 @@
     <Filter Include="Header Files\TCPUtils">
       <UniqueIdentifier>{1a5c4a5b-5b74-43eb-9e86-421afd4e42ea}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\TCPUtils">
+      <UniqueIdentifier>{ae2889e9-6230-48ba-9f40-b7c4361a78f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\ClientHelper">
+      <UniqueIdentifier>{3b50a155-07d6-4cd3-8e29-7deace7cc08f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\ClientHelper">
+      <UniqueIdentifier>{f1fef574-f76b-45db-8481-a464865a53e5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TCPUtils.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\TCPUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientHelper.cpp">
+      <Filter>Source Files\ClientHelper</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCPUtils.h">
       <Filter>Header Files\TCPUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientHelper.h">
+      <Filter>Header Files\ClientHelper</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

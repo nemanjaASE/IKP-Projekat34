@@ -19,6 +19,12 @@
     <Filter Include="Source Files\TCPUtils">
       <UniqueIdentifier>{41ead4df-659d-4c04-ac31-56514a09449e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\NodeHelper">
+      <UniqueIdentifier>{1fb7d61c-217e-40c9-bb12-52d2fd4a62dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NodeHelper">
+      <UniqueIdentifier>{50c028e9-290c-45ac-a66b-953ee80df2c6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -27,10 +33,16 @@
     <ClCompile Include="TCPUtils.cpp">
       <Filter>Source Files\TCPUtils</Filter>
     </ClCompile>
+    <ClCompile Include="NodeHelper.cpp">
+      <Filter>Source Files\NodeHelper</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCPUtils.h">
       <Filter>Header Files\TCPUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="NodeHelper.h">
+      <Filter>Header Files\NodeHelper</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
