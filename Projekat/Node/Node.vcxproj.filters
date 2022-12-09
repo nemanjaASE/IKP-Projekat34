@@ -13,10 +13,24 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\TCPUtils">
+      <UniqueIdentifier>{41e54119-7fa0-4d3a-8853-79f4f332b09b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\TCPUtils">
+      <UniqueIdentifier>{41ead4df-659d-4c04-ac31-56514a09449e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TCPUtils.cpp">
+      <Filter>Source Files\TCPUtils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TCPUtils.h">
+      <Filter>Header Files\TCPUtils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
