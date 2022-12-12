@@ -18,6 +18,11 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
+typedef enum select_option_t {
+	READ = 0,
+	WRITE
+} SelectOption;
+
 bool initialize_windows_sockets();
 
 sockaddr_in get_server_socket_address_struct(unsigned long port);
@@ -29,5 +34,9 @@ bool bind(SOCKET* listen_socket, sockaddr_in server_address, int size);
 bool set_non_blocking_mode(SOCKET* socket);
 
 bool set_listening_mode(SOCKET* listen_socket);
+
+void select_function(SOCKET socket, SelectOption option);
+
+SOCKET accept_new_socket(SOCKET listenSocket);
 
 #endif // __TCP_UTILS__

@@ -25,6 +25,12 @@
     <Filter Include="Source Files\ClientHelper">
       <UniqueIdentifier>{f1fef574-f76b-45db-8481-a464865a53e5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Student">
+      <UniqueIdentifier>{dec6f0f9-80cb-456c-a9ad-98805554ad88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Student">
+      <UniqueIdentifier>{4d7e36ad-95a5-4dd9-a8cd-40ebdc893424}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -36,6 +42,9 @@
     <ClCompile Include="ClientHelper.cpp">
       <Filter>Source Files\ClientHelper</Filter>
     </ClCompile>
+    <ClCompile Include="Student.cpp">
+      <Filter>Source Files\Student</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCPUtils.h">
@@ -43,6 +52,9 @@
     </ClInclude>
     <ClInclude Include="ClientHelper.h">
       <Filter>Header Files\ClientHelper</Filter>
+    </ClInclude>
+    <ClInclude Include="Student.h">
+      <Filter>Header Files\Student</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-#include "NodeHelper.h"
+#include "Threads.h"
 
 int main() {
 
@@ -38,6 +38,33 @@ int main() {
 		printf("------------------------------------------\n");
 	}
 	
+	HashTable* students = ht_create(100);
+	RingBuffer* ring_buffer = rb_create(50);
+	if (IS_NULL(students) || IS_NULL(ring_buffer)) {
+
+		ht_free(students);
+		rb_free(ring_buffer);
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+
+		return 0;
+	}
+
+	DWORD thread_id = -1;
+	HANDLE thread_handle = NULL;
+
+	ClientInformation* client_information = init_client_information(&thread_id, &thread_handle, students, ring_buffer);
+	if (IS_NULL(client_information)) {
+		ht_free(students);
+		rb_free(ring_buffer);
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+
+		return 0;
+	}
+
 	fd_set read_fds;
 	FD_ZERO(&read_fds);
 
@@ -70,7 +97,12 @@ int main() {
 
 			if (FD_ISSET(client_listen_socket, &read_fds)) {
 				// Client connected
-				printf("New client!!\n");
+				SOCKET accepted_socket = accept_new_socket(client_listen_socket);
+				set_client_socket(client_information, accepted_socket);
+
+				thread_handle = CreateThread(NULL, 0, &client_th, client_information, 0, &thread_id);
+				printf("[Receive_thread] A new Client_thread with ID=%lu has been started.\n", thread_id);
+
 				client_counter = 1;
 			}
 
@@ -80,6 +112,8 @@ int main() {
 		}
 	}
 
+	ht_free(students);
+	rb_free(ring_buffer);
 	closesocket(client_listen_socket);
 	closesocket(node_listen_socket);
 	WSACleanup();

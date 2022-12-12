@@ -12,18 +12,53 @@ int main() {
 
 	node_port = ch_port_number_input();
 	
+	system("cls");
+
 	if (!ch_init_connect_socket(&connect_socket, &server_address, node_port)) {
 		return -1;
 	}
+	else {
+		printf("--------------------------------------\n");
+		printf("[CONNECTED TO] '%s':'%lu'   |\n",
+			inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
+		printf("--------------------------------------\n");
+	}
+
+	Student* student = create_student();
+	int option = -1;
+	char* body = NULL;
+	unsigned char* header = (unsigned char*)malloc(sizeof(Header));
 
 	do {
+		option = ch_client_menu();
 
-	
+		if (option == 1) {
+
+			ch_student_input(student);
+
+			size_t body_len = fill_header(*student, header);
+
+			//for (int i = 0; i < sizeof(uint8_t) * 3; i++)
+				//printf("%02X ", header[i]);
+			//printf("\n");
+
+			body = serialize_student(student);
+
+			ch_send(connect_socket, header,3 * sizeof(uint8_t), body, body_len);
+		}
+		if (option == 2) {
+			break;
+		}
+		
 	} while (1);
 
-
+	free(header);
+	free(body);
+	free_student(student);
 	closesocket(connect_socket);
 	WSACleanup();
+
+	printf("\n\tClient terminated.");
 
 	return 0;
 }

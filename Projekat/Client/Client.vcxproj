@@ -141,10 +141,12 @@
   <ItemGroup>
     <ClCompile Include="ClientHelper.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Student.cpp" />
     <ClCompile Include="TCPUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientHelper.h" />
+    <ClInclude Include="Student.h" />
     <ClInclude Include="TCPUtils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

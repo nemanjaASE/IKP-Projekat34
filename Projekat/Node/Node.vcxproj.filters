@@ -25,6 +25,24 @@
     <Filter Include="Header Files\NodeHelper">
       <UniqueIdentifier>{50c028e9-290c-45ac-a66b-953ee80df2c6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Student">
+      <UniqueIdentifier>{21eb5e70-70aa-43eb-a463-db01e6d5eb1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Student">
+      <UniqueIdentifier>{f9572cf7-eec6-4f58-80d0-d1641e11b257}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\DataStructures">
+      <UniqueIdentifier>{4e24e5c0-b44c-4596-b24f-8e73039e42fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DataStructures">
+      <UniqueIdentifier>{2540668f-0325-4379-991b-474ea2acbe41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Threads">
+      <UniqueIdentifier>{c564989b-4fd2-4989-8951-1156caf060e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Threads">
+      <UniqueIdentifier>{93ec37de-2992-4700-b2a2-c635f3f32b24}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -36,6 +54,21 @@
     <ClCompile Include="NodeHelper.cpp">
       <Filter>Source Files\NodeHelper</Filter>
     </ClCompile>
+    <ClCompile Include="Student.cpp">
+      <Filter>Source Files\Student</Filter>
+    </ClCompile>
+    <ClCompile Include="SinglyLinkedList.cpp">
+      <Filter>Source Files\DataStructures</Filter>
+    </ClCompile>
+    <ClCompile Include="HashTable.cpp">
+      <Filter>Source Files\DataStructures</Filter>
+    </ClCompile>
+    <ClCompile Include="RingBuffer.cpp">
+      <Filter>Source Files\DataStructures</Filter>
+    </ClCompile>
+    <ClCompile Include="Threads.cpp">
+      <Filter>Source Files\Threads</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCPUtils.h">
@@ -43,6 +76,24 @@
     </ClInclude>
     <ClInclude Include="NodeHelper.h">
       <Filter>Header Files\NodeHelper</Filter>
+    </ClInclude>
+    <ClInclude Include="Student.h">
+      <Filter>Header Files\Student</Filter>
+    </ClInclude>
+    <ClInclude Include="SinglyLinkedList.h">
+      <Filter>Header Files\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="HashTable.h">
+      <Filter>Header Files\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="RingBuffer.h">
+      <Filter>Header Files\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="DistributedTransaction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Threads.h">
+      <Filter>Header Files\Threads</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
