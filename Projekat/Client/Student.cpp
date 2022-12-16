@@ -1,9 +1,9 @@
 #include "Student.h"
 
-Student* create_student() {
+Student* create_student(){
 	Student* student = NULL;
 
-	student = (Student*)malloc(sizeof(student));
+	student = (Student*)malloc(sizeof(Student));
 
 	if (IS_NULL(student)) {
 		printf("There is not enough memory for the student struct.\n");
@@ -61,9 +61,9 @@ size_t fill_header(Student student, unsigned char* header) {
 
 	Header header_struct;
 
-	header_struct.first_name_len = strlen(student.first_name);
-	header_struct.last_name_len = strlen(student.last_name);
-	header_struct.index_len = strlen(student.index);
+	header_struct.first_name_len = (uint8_t)strlen(student.first_name);
+	header_struct.last_name_len = (uint8_t)strlen(student.last_name);
+	header_struct.index_len = (uint8_t)strlen(student.index);
 
 	memcpy(header, (const unsigned char*)&header_struct, sizeof(Header));
 

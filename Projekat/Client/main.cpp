@@ -44,7 +44,8 @@ int main() {
 
 			body = serialize_student(student);
 
-			ch_send(connect_socket, header,3 * sizeof(uint8_t), body, body_len);
+			if (ch_send(connect_socket, header, 3 * sizeof(uint8_t), body, body_len) == 1)
+				break;
 		}
 		if (option == 2) {
 			break;
@@ -52,9 +53,11 @@ int main() {
 		
 	} while (1);
 
+	shutdown(connect_socket, SD_BOTH);
 	free(header);
 	free(body);
 	free_student(student);
+	free(student);
 	closesocket(connect_socket);
 	WSACleanup();
 

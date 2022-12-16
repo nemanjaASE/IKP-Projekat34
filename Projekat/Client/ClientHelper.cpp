@@ -109,11 +109,11 @@ void ch_clear_newline(char* str) {
 	}
 }
 
-void ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, char* buffer, size_t buffer_size) {
+int ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, char* buffer, size_t buffer_size) {
 
-	int bytes_sent = 0;
+	unsigned int bytes_sent = 0;
 	int i_result = 0;
-
+	int end = 0;
 	// Send header
 	do {
 		select_function(connect_socket, WRITE);
@@ -127,6 +127,7 @@ void ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, c
 			{
 				printf("Shutdown failed with error: %d\n", WSAGetLastError());
 			}
+			end = 1;
 			break;
 		}
 
@@ -151,10 +152,13 @@ void ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, c
 			{
 				printf("Shutdown failed with error: %d\n", WSAGetLastError());
 			}
+			end = 1;
 			break;
 		}
 
 		bytes_sent += i_result;
 
 	} while (bytes_sent < buffer_size);
+
+	return end;
 }

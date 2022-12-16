@@ -75,7 +75,7 @@ HashTableEntry* ht_new_entry(char* key, Student student) {
     return ht_entry;
 }
 
-bool ht_add(HashTable* hash_table, char* key,Student student) {
+bool ht_add(HashTable* hash_table, char* key, Student student) {
 
     if (hash_table == NULL || key == NULL) {
         return false;
@@ -198,6 +198,7 @@ void ht_free_entry(HashTableEntry* entry) {
         free(current->student->first_name);
         free(current->student->last_name);
         free(current->student->index);
+        free(current->student);
         free(current);
         current = temp;
     }

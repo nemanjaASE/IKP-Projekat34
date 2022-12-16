@@ -20,7 +20,7 @@ sockaddr_in get_server_socket_address_struct(unsigned long port) {
 
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
-	serverAddress.sin_port = htons(port);
+	serverAddress.sin_port = htons((u_short)port);
 
 	return serverAddress;
 }
@@ -33,7 +33,7 @@ sockaddr_in get_client_socket_address_struct(unsigned long port, char* node_ip_a
 
 	server_address.sin_family = AF_INET;
 	server_address.sin_addr.s_addr = inet_addr(node_ip_address);
-	server_address.sin_port = htons(port);		
+	server_address.sin_port = htons((u_short)port);
 
 	return server_address;
 }

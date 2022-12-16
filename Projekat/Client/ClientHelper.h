@@ -23,6 +23,6 @@ void ch_student_input(Student* student);
 
 void ch_clear_newline(char* str);
 
-void ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, char* buffer, size_t buffer_size);
+int ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, char* buffer, size_t buffer_size);
 
 #endif CLIENT_HELPER_H

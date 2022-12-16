@@ -20,7 +20,7 @@ sockaddr_in get_server_socket_address_struct(unsigned long port) {
 
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
-	serverAddress.sin_port = htons(port);
+	serverAddress.sin_port = htons((u_short)port);
 
 	return serverAddress;
 }
@@ -33,7 +33,7 @@ sockaddr_in get_client_socket_address_struct(unsigned long port, char* node_ip_a
 
 	server_address.sin_family = AF_INET;
 	server_address.sin_addr.s_addr = inet_addr(node_ip_address);
-	server_address.sin_port = htons(port);
+	server_address.sin_port = htons((u_short)port);
 
 	return server_address;
 }
@@ -82,7 +82,7 @@ bool set_listening_mode(SOCKET* listen_socket) {
 	return true;
 }
 
-void select_function(SOCKET socket, SelectOption option) {
+void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 
 	FD_SET set;
 	timeval time_val;
@@ -92,7 +92,7 @@ void select_function(SOCKET socket, SelectOption option) {
 
 	int i_result = 0;
 
-	while (1)
+	while (WaitForSingleObject(exit_signal, 10) == WAIT_TIMEOUT)
 	{
 		FD_ZERO(&set);
 		FD_SET(socket, &set);
@@ -113,6 +113,7 @@ void select_function(SOCKET socket, SelectOption option) {
 		}
 		else if (i_result == SOCKET_ERROR) {
 			printf("\nError occured in select function.. %d\n", WSAGetLastError());
+			return;
 		}
 		else {
 			return;
