@@ -5,10 +5,11 @@
 
 int main() {
 
-	_CrtMemState sOld;
-	_CrtMemState sNew;
-	_CrtMemState sDiff;
-	_CrtMemCheckpoint(&sOld); //take a snapshot
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtMemState sOld;
+	//_CrtMemState sNew;
+	//_CrtMemState sDiff;
+	//_CrtMemCheckpoint(&sOld); //take a snapshot
 
 	if (!initialize_windows_sockets()) {
 		return -1;
@@ -189,17 +190,17 @@ int main() {
 
 	printf("\n\n Press any key to exit.");
 
-	_CrtMemCheckpoint(&sNew); //take a snapshot 
-	if (_CrtMemDifference(&sDiff, &sOld, &sNew)) // if there is a difference
-	{
-		OutputDebugString(L"-----------_CrtMemDumpStatistics ---------");
-		_CrtMemDumpStatistics(&sDiff);
-		OutputDebugString(L"-----------_CrtMemDumpAllObjectsSince ---------");
-		_CrtMemDumpAllObjectsSince(&sOld);
-		OutputDebugString(L"-----------_CrtDumpMemoryLeaks ---------");
-		_CrtDumpMemoryLeaks();
-	}
-
+	//_CrtMemCheckpoint(&sNew); //take a snapshot 
+	//if (_CrtMemDifference(&sDiff, &sOld, &sNew)) // if there is a difference
+	//{
+		//OutputDebugString(L"-----------_CrtMemDumpStatistics ---------");
+		//_CrtMemDumpStatistics(&sDiff);
+		//OutputDebugString(L"-----------_CrtMemDumpAllObjectsSince ---------");
+		//_CrtMemDumpAllObjectsSince(&sOld);
+		//OutputDebugString(L"-----------_CrtDumpMemoryLeaks ---------");
+		//_CrtDumpMemoryLeaks();
+	//}
+	
 	char c = getchar();
  	c = getchar();
 

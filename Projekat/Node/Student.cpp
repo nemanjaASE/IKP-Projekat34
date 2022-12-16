@@ -98,6 +98,7 @@ void free_student(Student* student) {
 	free(student->first_name);
 	free(student->last_name);
 	free(student->index);
+	free(student);
 }
 
 size_t fill_header(Student student, unsigned char* header) {

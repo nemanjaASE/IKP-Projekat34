@@ -94,7 +94,14 @@ void ch_student_input(Student* student) {
 		ch_clear_newline(index);
 	}
 
-	fill_student(student, first_name, last_name, index);
+	if (IS_NULL(student->first_name) && IS_NULL(student->last_name) && IS_NULL(student->index)) {
+
+		fill_student(student, first_name, last_name, index);
+	}
+	else
+	{
+		update_student(student, first_name, last_name, index);
+	}
 }
 
 void ch_clear_newline(char* str) {

@@ -102,10 +102,6 @@ DWORD WINAPI client_th(LPVOID param) {
 	}
 
 	free_student(student);
-	if (!IS_NULL(student)) {
-		free(student);
-	}
-
 	ReleaseSemaphore(client_information->has_client_semaphore, 1, NULL);
 	printf("[Thread_ID:%lu] Terminating...\n", *client_information->lp_thread_id);
 

@@ -46,6 +46,46 @@ void fill_student(Student* student, char* first_name, char* last_name, char* ind
 	strcpy(student->index, index);
 }
 
+void update_student(Student* student, char* first_name, char* last_name, char* index) {
+
+	if (IS_NULL(student) || IS_NULL(first_name) || IS_NULL(last_name) || IS_NULL(index)) {
+		return;
+	}
+
+	char* temp = NULL;
+
+	temp = (char*)realloc(student->first_name, sizeof(char) * (strlen(first_name) + 1));
+	if (IS_NULL(temp)) {
+		printf("There is not enough memory for the student first name.\n");
+		return;
+	}
+	student->first_name = temp;
+	temp = NULL;
+
+	temp = (char*)realloc(student->last_name, sizeof(char) * (strlen(last_name) + 1));
+	if (IS_NULL(temp)) {
+		printf("There is not enough memory for the student last name.\n");
+		free(student->first_name);
+		return;
+	}
+	student->last_name = temp;
+	temp = NULL;
+
+	temp = (char*)realloc(student->index, sizeof(char) * (strlen(index) + 1));
+	if (IS_NULL(temp)) {
+		printf("There is not enough memory for the student index.\n");
+		free(student->first_name);
+		free(student->index);
+		return;
+	}
+	student->index = temp;
+	temp = NULL;
+
+	strcpy(student->first_name, first_name);
+	strcpy(student->last_name, last_name);
+	strcpy(student->index, index);
+}
+
 void free_student(Student* student) {
 
 	if (IS_NULL(student)) {
@@ -55,6 +95,7 @@ void free_student(Student* student) {
 	free(student->first_name);
 	free(student->last_name);
 	free(student->index);
+	free(student);
 }
 
 size_t fill_header(Student student, unsigned char* header) {
