@@ -121,6 +121,45 @@ void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 	}
 }
 
+void select_function(SOCKET socket, SelectOption option) {
+
+	FD_SET set;
+	timeval time_val;
+
+	time_val.tv_sec = 0;
+	time_val.tv_usec = 0;
+
+	int i_result = 0;
+
+	while (1)
+	{
+		FD_ZERO(&set);
+		FD_SET(socket, &set);
+
+		if (option == READ)
+			i_result = select(0, &set, NULL, NULL, &time_val);
+		else if (option == WRITE)
+			i_result = select(0, NULL, &set, NULL, &time_val);
+		else
+		{
+			printf("\nUnknown SelectOption!\n");
+			return;
+		}
+
+
+		if (i_result == 0) {
+			continue;
+		}
+		else if (i_result == SOCKET_ERROR) {
+			printf("\nError occured in select function.. %d\n", WSAGetLastError());
+			return;
+		}
+		else {
+			return;
+		}
+	}
+}
+
 SOCKET accept_new_socket(SOCKET listen_socket) {
 
 	SOCKET accepted_socket = accept(listen_socket, NULL, NULL);

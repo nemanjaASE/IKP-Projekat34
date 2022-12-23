@@ -6,10 +6,6 @@
 int main() {
 
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	//_CrtMemState sOld;
-	//_CrtMemState sNew;
-	//_CrtMemState sDiff;
-	//_CrtMemCheckpoint(&sOld); //take a snapshot
 
 	if (!initialize_windows_sockets()) {
 		return -1;
@@ -20,15 +16,40 @@ int main() {
 	sockaddr_in client_address;
 	sockaddr_in node_address;
 
+	SinglyLinkedList* nodes = sll_create();
+	HashTable* students = ht_create(100);
+	if (IS_NULL(students) || IS_NULL(nodes)) {
+
+		sll_free(nodes);
+		ht_free(students);
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+
+		return 0;
+	}
+
 	unsigned long client_port = 0;
 	unsigned long node_port = 0;
 	
 	client_port = nh_port_number_input((char*)"CLIENT");
 	node_port = nh_port_number_input((char*)"NODE");
 
+	getchar();
+
+	// Firt node on network or n-th
+
+	if (!nh_integrity_update(nodes, students)) {
+		sll_free(nodes);
+		ht_free(students);
+		return -1;
+	}
+
 	system("cls");
 
 	if (!nh_init_listen_socket(&client_listen_socket, &client_address, client_port)) {
+		sll_free(nodes);
+		ht_free(students);
 		return -1;
 	}
 	else {
@@ -39,6 +60,8 @@ int main() {
 	}
 
 	if (!nh_init_listen_socket(&node_listen_socket, &node_address, node_port)) {
+		sll_free(nodes);
+		ht_free(students);
 		return -1;
 	}
 	else {
@@ -47,6 +70,7 @@ int main() {
 		printf("------------------------------------------\n");
 	}
 	
+	ht_show(students);
 	// Exit_Thread
 
 	DWORD thread_exit_id = -1;
@@ -57,6 +81,8 @@ int main() {
 
 	if (IS_NULL(thread_exit_handle)) {
 
+		sll_free(nodes);
+		ht_free(students);
 		closesocket(client_listen_socket);
 		closesocket(node_listen_socket);
 		WSACleanup();
@@ -66,10 +92,10 @@ int main() {
 
 	// Data Structures
 
-	HashTable* students = ht_create(100);
 	RingBuffer* ring_buffer = rb_create(50);
-	if (IS_NULL(students) || IS_NULL(ring_buffer)) {
+	if (IS_NULL(ring_buffer)) {
 
+		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
 		closesocket(client_listen_socket);
@@ -86,6 +112,7 @@ int main() {
 	HANDLE has_client_semaphore = CreateSemaphore(0, 1, 1, NULL);
 	HANDLE exit_signal = CreateSemaphore(0, 0, 1, NULL);
 	if (IS_NULL(has_client_semaphore) || IS_NULL(exit_signal)) {
+		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
 		closesocket(client_listen_socket);
@@ -97,17 +124,17 @@ int main() {
 
 	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, has_client_semaphore, exit_signal);
 	if (IS_NULL(client_information)) {
+		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
 		closesocket(client_listen_socket);
 		closesocket(node_listen_socket);
 		WSACleanup();
 
-		return 0;
+		return -1;
 	}
 
 	// Driver code
-
 	fd_set read_fds;
 	FD_ZERO(&read_fds);
 
@@ -164,6 +191,21 @@ int main() {
 
 			if (FD_ISSET(node_listen_socket, &read_fds)) {
 				// Node connected
+				SOCKET accepted_socket = accept_new_socket(node_listen_socket);
+
+				NodeInformation* node_information = init_node_information(students, nodes);
+				if (IS_NULL(node_information)) {
+					break;
+				}
+
+				DWORD new_id;
+				HANDLE new_handle = CreateThread(NULL, 0, &integrity_update_th, node_information, 0, &new_id);
+
+				if (IS_NULL(new_handle)) {
+					break;
+				}
+				printf("[Receive_thread] A new Integrity_update_thread with ID=%lu has been started.\n", new_id);
+				set_node_socket(node_information, accepted_socket, new_id, new_handle);
 			}
 		}
 	}
@@ -182,6 +224,7 @@ int main() {
 
 	ht_free(students);
 	rb_free(ring_buffer);
+	sll_free(nodes);
 	free_client_information(client_information);
 
 	closesocket(client_listen_socket);
@@ -189,17 +232,6 @@ int main() {
 	WSACleanup();
 
 	printf("\n\n Press any key to exit.");
-
-	//_CrtMemCheckpoint(&sNew); //take a snapshot 
-	//if (_CrtMemDifference(&sDiff, &sOld, &sNew)) // if there is a difference
-	//{
-		//OutputDebugString(L"-----------_CrtMemDumpStatistics ---------");
-		//_CrtMemDumpStatistics(&sDiff);
-		//OutputDebugString(L"-----------_CrtMemDumpAllObjectsSince ---------");
-		//_CrtMemDumpAllObjectsSince(&sOld);
-		//OutputDebugString(L"-----------_CrtDumpMemoryLeaks ---------");
-		//_CrtDumpMemoryLeaks();
-	//}
 	
 	char c = getchar();
  	c = getchar();

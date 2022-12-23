@@ -36,6 +36,8 @@ bool set_listening_mode(SOCKET* listen_socket);
 
 void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal);
 
+void select_function(SOCKET socket, SelectOption option);
+
 SOCKET accept_new_socket(SOCKET listenSocket);
 
 #endif // __TCP_UTILS__

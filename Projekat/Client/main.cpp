@@ -64,6 +64,7 @@ int main() {
 	} while (1);
 
 	shutdown(connect_socket, SD_BOTH);
+
 	free(header);
 	free_student(student);
 	closesocket(connect_socket);

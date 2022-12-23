@@ -16,11 +16,7 @@ SinglyLinkedList* sll_create() {
 	return singly_linked_list;
 }
 
-Node* sll_new_node(char* value) {
-
-	if (value == NULL) {
-		return NULL;
-	}
+Node* sll_new_node(NetworkNode value) {
 
 	Node* new_node = NULL;
 
@@ -30,21 +26,16 @@ Node* sll_new_node(char* value) {
 		return NULL;
 	}
 
-	new_node->value = (char*)malloc(strlen(value) + 1);
-
-	if (new_node->value == NULL) {
-		return NULL;
-	}
-
-	strcpy(new_node->value, value);
+	new_node->value.node_socket = value.node_socket;
+	new_node->value.port = value.port;
 	new_node->next_node = NULL;
 
 	return new_node;
 }
 
-bool sll_insert_first(SinglyLinkedList* singly_linked_list, char* value) {
+bool sll_insert_first(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 
-	if (singly_linked_list == NULL || value == NULL) {
+	if (singly_linked_list == NULL) {
 		return false;
 	}
 
@@ -67,9 +58,9 @@ bool sll_insert_first(SinglyLinkedList* singly_linked_list, char* value) {
 	return true;
 }
 
-bool sll_insert_last(SinglyLinkedList* singly_linked_list, char* value) {
+bool sll_insert_last(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 
-	if (singly_linked_list == NULL || value == NULL) {
+	if (singly_linked_list == NULL) {
 		return false;
 	}
 
@@ -122,7 +113,7 @@ void sll_show(SinglyLinkedList* singly_linked_list) {
 }
 
 void sll_free(SinglyLinkedList* singly_linked_list) {
-	if (singly_linked_list == NULL || singly_linked_list->head == NULL) {
+	if (singly_linked_list == NULL) {
 		return;
 	}
 
@@ -131,8 +122,6 @@ void sll_free(SinglyLinkedList* singly_linked_list) {
 
 	while (current != NULL) {
 		temp = current->next_node;
-
-		free(current->value);
 		free(current);
 
 		current = temp;
