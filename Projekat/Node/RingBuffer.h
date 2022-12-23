@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ws2tcpip.h>
 #include "DistributedTransaction.h"
 
 #define IS_NULL(a) (a == NULL)
@@ -15,6 +16,7 @@ typedef struct ring_buffer_t {
 	unsigned int push_idx;
 	unsigned int pop_idx;
 	DistributedTransaction* buffer;
+	CRITICAL_SECTION rb_cs;
 
 } RingBuffer;
 

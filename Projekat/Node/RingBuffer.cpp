@@ -25,18 +25,31 @@ RingBuffer* rb_create(size_t size) {
 	ring_buffer->push_idx = 0;
 	ring_buffer->size = size;
 
+	InitializeCriticalSection(&ring_buffer->rb_cs);
+
 	return ring_buffer;
 }
 
 void rb_push_value(RingBuffer* ring_buffer, DistributedTransaction value) {
+
+	EnterCriticalSection(&ring_buffer->rb_cs);
+
 	ring_buffer->buffer[ring_buffer->push_idx].id = value.id;
 	ring_buffer->buffer[ring_buffer->push_idx].student = value.student;
 	ring_buffer->push_idx = (ring_buffer->push_idx + 1) % ring_buffer->size;
+
+	LeaveCriticalSection(&ring_buffer->rb_cs);
 }
 
 DistributedTransaction rb_pop_value(RingBuffer* ring_buffer) {
+
+	EnterCriticalSection(&ring_buffer->rb_cs);
+
 	DistributedTransaction element = ring_buffer->buffer[ring_buffer->pop_idx];
 	ring_buffer->pop_idx = (ring_buffer->pop_idx + 1) % ring_buffer->size;
+
+	LeaveCriticalSection(&ring_buffer->rb_cs);
+
 	return element;
 }
 
@@ -50,5 +63,8 @@ void rb_free(RingBuffer* ring_buffer) {
 	if (IS_NULL(ring_buffer)) {
 		return;
 	}
+
+	DeleteCriticalSection(&ring_buffer->rb_cs);
+
 	free(ring_buffer);
 }

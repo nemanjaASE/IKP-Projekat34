@@ -1,5 +1,7 @@
 #include "Threads.h"
 
+#pragma region Threads
+
 DWORD WINAPI exit_th(LPVOID param) {
 
 	HANDLE* exit_signal = (HANDLE*)(param);
@@ -233,6 +235,7 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 				}
 
 				current = current->next_entry;
+				Sleep(1000);
 			}
 		}
 		free(header);
@@ -246,6 +249,10 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 
 	return 0;
 }
+
+#pragma endregion Threads
+
+#pragma region ClientInformation
 
 ClientInformation* init_client_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, HANDLE has_client_semaphore, HANDLE exit_semaphore) {
 
@@ -285,6 +292,10 @@ void free_client_information(ClientInformation* client_information) {
 	free(client_information);
 }
 
+#pragma endregion ClientInformation
+
+#pragma region NodeInformation
+
 NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes) {
 
 	if (IS_NULL(students) || IS_NULL(nodes)) {
@@ -318,3 +329,5 @@ void free_node_information(NodeInformation* node_information) {
 	SAFE_HANDLE(node_information->node_thread_handle);
 	free(node_information);
 }
+
+#pragma endregion NodeInformation

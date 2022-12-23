@@ -38,6 +38,8 @@ HashTable* ht_create(unsigned long table_size) {
         hash_table->entries[i] = NULL;
     }
 
+    InitializeCriticalSection(&hash_table->ht_cs);
+
     return hash_table;
 }
 
@@ -77,11 +79,15 @@ HashTableEntry* ht_new_entry(char* key, Student student) {
 
 bool ht_add(HashTable* hash_table, char* key, Student student) {
 
+    EnterCriticalSection(&hash_table->ht_cs);
+
     if (hash_table == NULL || key == NULL) {
+        LeaveCriticalSection(&hash_table->ht_cs);
         return false;
     }
 
     if (ht_find_by_key(hash_table, key)) {
+        LeaveCriticalSection(&hash_table->ht_cs);
         return false;
     }
 
@@ -89,6 +95,7 @@ bool ht_add(HashTable* hash_table, char* key, Student student) {
 
     HashTableEntry* new_entry = ht_new_entry(key, student);
     if (new_entry == NULL) {
+        LeaveCriticalSection(&hash_table->ht_cs);
         return false;
     }
 
@@ -106,11 +113,17 @@ bool ht_add(HashTable* hash_table, char* key, Student student) {
     }
     hash_table->counter++;
 
+    LeaveCriticalSection(&hash_table->ht_cs);
+
     return true;
 }
 
 HashTableEntry* ht_get_by_key(HashTable* hash_table, char* key) {
+
+    EnterCriticalSection(&hash_table->ht_cs);
+
     if (hash_table == NULL) {
+        LeaveCriticalSection(&hash_table->ht_cs);
         return NULL;
     }
 
@@ -120,17 +133,24 @@ HashTableEntry* ht_get_by_key(HashTable* hash_table, char* key) {
 
     while (current != NULL) {
         if (strcmp(current->key, key) == 0) {
+            LeaveCriticalSection(&hash_table->ht_cs);
             return current;
         }
 
         current = current->next_entry;
     }
 
+    LeaveCriticalSection(&hash_table->ht_cs);
+
     return NULL;
 }
 
 bool ht_find_by_key(HashTable* hash_table, char* key) {
+
+    EnterCriticalSection(&hash_table->ht_cs);
+
     if (hash_table == NULL) {
+        LeaveCriticalSection(&hash_table->ht_cs);
         return false;
     }
 
@@ -140,24 +160,31 @@ bool ht_find_by_key(HashTable* hash_table, char* key) {
 
     while (current != NULL) {
         if (strcmp(current->key, key) == 0) {
+            LeaveCriticalSection(&hash_table->ht_cs);
             return true;
         }
 
         current = current->next_entry;
     }
 
+    LeaveCriticalSection(&hash_table->ht_cs);
+
     return false;
 }
 
 void ht_show(HashTable* hash_table) {
 
+    EnterCriticalSection(&hash_table->ht_cs);
+
     if (hash_table == NULL) {
         printf("The hash table not found.");
+        LeaveCriticalSection(&hash_table->ht_cs);
         return;
     }
 
     if (hash_table->counter == 0) {
         printf("The hash table is empty.");
+        LeaveCriticalSection(&hash_table->ht_cs);
         return;
     }
 
@@ -179,6 +206,8 @@ void ht_show(HashTable* hash_table) {
         }
         printf("\n");
     }
+
+    LeaveCriticalSection(&hash_table->ht_cs);
 
 }
 
@@ -218,5 +247,6 @@ void ht_free(HashTable* hash_table) {
     }
 
     free(hash_table->entries);
+    DeleteCriticalSection(&hash_table->ht_cs);
     free(hash_table);
 }

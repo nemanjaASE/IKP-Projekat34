@@ -38,11 +38,27 @@ typedef struct node_information_t {
 
 } NodeInformation;
 
+#pragma region Threads
+
+DWORD WINAPI exit_th(LPVOID param);
+
+DWORD WINAPI client_th(LPVOID param);
+
+DWORD WINAPI integrity_update_th(LPVOID param);
+
+#pragma endregion Threads
+
+#pragma region ClientInformation
+
 ClientInformation* init_client_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, HANDLE has_client_semaphore, HANDLE exit_semaphore);
 
 void set_client_socket(ClientInformation* client_information, SOCKET socket);
 
 void free_client_information(ClientInformation* client_information);
+
+#pragma endregion ClientInformation
+
+#pragma region NodeInformation
 
 NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes);
 
@@ -50,10 +66,6 @@ void set_node_socket(NodeInformation* node_information, SOCKET socket, WORD thre
 
 void free_node_information(NodeInformation* node_information);
 
-DWORD WINAPI exit_th(LPVOID param);
-
-DWORD WINAPI client_th(LPVOID param);
-
-DWORD WINAPI integrity_update_th(LPVOID param);
+#pragma endregion NodeInformation
 
 #endif // !THREADS_H

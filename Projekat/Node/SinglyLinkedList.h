@@ -23,6 +23,7 @@ typedef struct node_t {
 typedef struct singly_linked_list_t {
 	Node* head;
 	unsigned int counter;
+	CRITICAL_SECTION sll_cs;
 } SinglyLinkedList;
 
 SinglyLinkedList* sll_create();

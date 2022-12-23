@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ws2tcpip.h>
 #include "Student.h"
 
 typedef struct hash_table_entry_t {
@@ -20,6 +21,7 @@ typedef struct hash_table_t {
 	HashTableEntry** entries;
 	unsigned long size;
 	unsigned long counter;
+	CRITICAL_SECTION ht_cs;
 } HashTable;
 
 unsigned long hash(char* key, unsigned long HT_SIZE);

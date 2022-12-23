@@ -13,6 +13,8 @@ SinglyLinkedList* sll_create() {
 	singly_linked_list->counter = 0;
 	singly_linked_list->head = NULL;
 
+	InitializeCriticalSection(&singly_linked_list->sll_cs);
+
 	return singly_linked_list;
 }
 
@@ -35,13 +37,17 @@ Node* sll_new_node(NetworkNode value) {
 
 bool sll_insert_first(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 
+	EnterCriticalSection(&singly_linked_list->sll_cs);
+
 	if (singly_linked_list == NULL) {
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return false;
 	}
 
 	Node* new_node = sll_new_node(value);
 
 	if (new_node == NULL) {
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return false;
 	}
 
@@ -55,18 +61,24 @@ bool sll_insert_first(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 
 	singly_linked_list->counter++;
 
+	LeaveCriticalSection(&singly_linked_list->sll_cs);
+
 	return true;
 }
 
 bool sll_insert_last(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 
+	EnterCriticalSection(&singly_linked_list->sll_cs);
+
 	if (singly_linked_list == NULL) {
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return false;
 	}
 
 	Node* new_node = sll_new_node(value);
 
 	if (new_node == NULL) {
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return false;
 	}
 
@@ -85,18 +97,24 @@ bool sll_insert_last(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 
 	singly_linked_list->counter++;
 
+	LeaveCriticalSection(&singly_linked_list->sll_cs);
+
 	return true;
 }
 
 void sll_show(SinglyLinkedList* singly_linked_list) {
 
+	EnterCriticalSection(&singly_linked_list->sll_cs);
+
 	if (singly_linked_list == NULL) {
 		printf("The singly linked list not found. \n");
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return;
 	}
 
 	if (singly_linked_list->counter == 0) {
 		printf("The singly linked list is empty. \n");
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return;
 	}
 
@@ -110,6 +128,8 @@ void sll_show(SinglyLinkedList* singly_linked_list) {
 	}
 
 	printf("\n");
+
+	LeaveCriticalSection(&singly_linked_list->sll_cs);
 }
 
 void sll_free(SinglyLinkedList* singly_linked_list) {
@@ -126,6 +146,8 @@ void sll_free(SinglyLinkedList* singly_linked_list) {
 
 		current = temp;
 	}
+
+	DeleteCriticalSection(&singly_linked_list->sll_cs);
 
 	free(singly_linked_list);
 }
