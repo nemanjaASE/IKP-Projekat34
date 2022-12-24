@@ -123,7 +123,6 @@ bool nh_integrity_update(SinglyLinkedList* nodes, HashTable* students) {
 		// Receive students
 
 		nh_receive_students(first_node, students_num, students);
-
 	}
 
 	return true;
@@ -148,10 +147,7 @@ bool nh_fill_nodes(SinglyLinkedList* nodes, int number_of_nodes) {
 			printf("[CONNECTED TO] '%s':'%lu'\n",
 				inet_ntoa(server_address.sin_addr), ntohs(server_address.sin_port));
 
-			NetworkNode node;
-			node.node_socket = connect_socket;
-			node.port = port;
-			sll_insert_first(nodes, node);
+			sll_insert_first(nodes, connect_socket);
 		}
 	}
 
@@ -171,18 +167,18 @@ bool nh_broadcast_message(SinglyLinkedList* nodes) {
 			message = '1';
 		}
 
-		select_function(current->value.node_socket, WRITE);
+		select_function(current->node_socket, WRITE);
 
-		int i_result = send(current->value.node_socket, (char*)&message, sizeof(char), 0);
+		int i_result = send(current->node_socket, (char*)&message, sizeof(char), 0);
 
 		if (i_result == SOCKET_ERROR || i_result == 0)
 		{
-			i_result = shutdown(nodes->head->value.node_socket, SD_SEND);
+			i_result = shutdown(nodes->head->node_socket, SD_SEND);
 			if (i_result == SOCKET_ERROR)
 			{
 				printf("Shutdown failed with error: %d\n", WSAGetLastError());
 			}
-			closesocket(nodes->head->value.node_socket);
+			closesocket(nodes->head->node_socket);
 			return false;
 		}
 		current = current->next_node;
@@ -202,18 +198,18 @@ unsigned long nh_receive_number_of_students(Node* first_node) {
 	// Receive number of students
 
 	do {
-		select_function(first_node->value.node_socket, READ);
+		select_function(first_node->node_socket, READ);
 
-		int i_result = recv(first_node->value.node_socket, receive_buffer + bytes_sent, sizeof(unsigned long) - bytes_sent, 0);
+		int i_result = recv(first_node->node_socket, receive_buffer + bytes_sent, sizeof(unsigned long) - bytes_sent, 0);
 		if (i_result == SOCKET_ERROR || i_result == 0)
 		{
-			i_result = shutdown(first_node->value.node_socket, SD_SEND);
+			i_result = shutdown(first_node->node_socket, SD_SEND);
 			if (i_result == SOCKET_ERROR)
 			{
 				printf("Shutdown failed with error: %d\n", WSAGetLastError());
 			}
 			free(receive_buffer);
-			closesocket(first_node->value.node_socket);
+			closesocket(first_node->node_socket);
 			return 0;
 		}
 		bytes_sent += i_result;
@@ -246,8 +242,8 @@ void nh_receive_students(Node* first_node, unsigned long number_of_students, Has
 
 		do
 		{
-			select_function(first_node->value.node_socket, READ);
-			i_result = recv(first_node->value.node_socket, (char*)&header + bytes_recieved, header_size - bytes_recieved, 0);
+			select_function(first_node->node_socket, READ);
+			i_result = recv(first_node->node_socket, (char*)&header + bytes_recieved, header_size - bytes_recieved, 0);
 			if (i_result == SOCKET_ERROR || i_result == 0) {
 				end = 1;
 				break;
@@ -274,8 +270,8 @@ void nh_receive_students(Node* first_node, unsigned long number_of_students, Has
 		// Receive body
 		do
 		{
-			select_function(first_node->value.node_socket, READ);
-			i_result = recv(first_node->value.node_socket, buffer + bytes_recieved, body_size - bytes_recieved, 0);
+			select_function(first_node->node_socket, READ);
+			i_result = recv(first_node->node_socket, buffer + bytes_recieved, body_size - bytes_recieved, 0);
 			if (i_result == SOCKET_ERROR || i_result == 0) {
 				end = 1;
 				break;

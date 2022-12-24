@@ -16,12 +16,16 @@ int main() {
 	sockaddr_in client_address;
 	sockaddr_in node_address;
 
+	// Data Structures
+
 	SinglyLinkedList* nodes = sll_create();
 	HashTable* students = ht_create(100);
-	if (IS_NULL(students) || IS_NULL(nodes)) {
+	RingBuffer* ring_buffer = rb_create(50);
+	if (IS_NULL(students) || IS_NULL(nodes) || IS_NULL(ring_buffer)) {
 
 		sll_free(nodes);
 		ht_free(students);
+		rb_free(ring_buffer);
 		closesocket(client_listen_socket);
 		closesocket(node_listen_socket);
 		WSACleanup();
@@ -39,35 +43,78 @@ int main() {
 
 	// Firt node on network or n-th
 
+	HANDLE has_client_semaphore = CreateSemaphore(0, 1, 1, NULL);
+	HANDLE exit_signal = CreateSemaphore(0, 0, 64, NULL);
+	if (IS_NULL(has_client_semaphore) || IS_NULL(exit_signal)) {
+		sll_free(nodes);
+		ht_free(students);
+		rb_free(ring_buffer);
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+
+		return 0;
+	}
+
+
 	if (!nh_integrity_update(nodes, students)) {
-		sll_free(nodes);
-		ht_free(students);
-		return -1;
-	}
-
-	system("cls");
-
-	if (!nh_init_listen_socket(&client_listen_socket, &client_address, client_port)) {
+		rb_free(ring_buffer);
 		sll_free(nodes);
 		ht_free(students);
 		return -1;
 	}
 	else {
-		printf("------------------------------------------\n");
-		printf("[CLIENT LISTEN SOCKET] '%s':'%lu' |\n",
-			inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
-		printf("------------------------------------------\n");
-	}
+		
+		system("cls");
 
-	if (!nh_init_listen_socket(&node_listen_socket, &node_address, node_port)) {
-		sll_free(nodes);
-		ht_free(students);
-		return -1;
-	}
-	else {
-		printf("[NODE LISTEN SOCKET] '%s':'%lu'   |\n",
-			inet_ntoa(node_address.sin_addr), ntohs(node_address.sin_port));
-		printf("------------------------------------------\n");
+		if (!nh_init_listen_socket(&client_listen_socket, &client_address, client_port)) {
+			sll_free(nodes);
+			rb_free(ring_buffer);
+			ht_free(students);
+			return -1;
+		}
+		else {
+			printf("------------------------------------------\n");
+			printf("[CLIENT LISTEN SOCKET] '%s':'%lu' |\n",
+				inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+			printf("------------------------------------------\n");
+		}
+
+		if (!nh_init_listen_socket(&node_listen_socket, &node_address, node_port)) {
+			sll_free(nodes);
+			ht_free(students);
+			rb_free(ring_buffer);
+			return -1;
+		}
+		else {
+			printf("[NODE LISTEN SOCKET] '%s':'%lu'   |\n",
+				inet_ntoa(node_address.sin_addr), ntohs(node_address.sin_port));
+			printf("------------------------------------------\n");
+		}
+
+		Node* current = nodes->head;
+		while (current != NULL) {
+
+			DWORD new_id;
+
+			NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal);
+			if (IS_NULL(node_information)) {
+				break;
+			}
+
+			HANDLE new_handle = CreateThread(NULL, 0, &node_th, node_information, 0, &new_id);
+			if (IS_NULL(new_handle)) {
+				free_node_information(node_information);
+				return -1;
+			}
+
+			printf("[Receive_thread] A new Node_thread with ID=%lu has been started.\n", new_id);
+
+			set_node_socket(node_information, current->node_socket, new_id, new_handle);
+			Sleep(100);
+
+			current = current->next_node;
+		}
 	}
 	
 	ht_show(students);
@@ -82,22 +129,8 @@ int main() {
 	if (IS_NULL(thread_exit_handle)) {
 
 		sll_free(nodes);
-		ht_free(students);
-		closesocket(client_listen_socket);
-		closesocket(node_listen_socket);
-		WSACleanup();
-
-		return 0;
-	}
-
-	// Data Structures
-
-	RingBuffer* ring_buffer = rb_create(50);
-	if (IS_NULL(ring_buffer)) {
-
-		sll_free(nodes);
-		ht_free(students);
 		rb_free(ring_buffer);
+		ht_free(students);
 		closesocket(client_listen_socket);
 		closesocket(node_listen_socket);
 		WSACleanup();
@@ -109,20 +142,8 @@ int main() {
 
 	DWORD thread_id = -1;
 	HANDLE thread_handle = NULL;
-	HANDLE has_client_semaphore = CreateSemaphore(0, 1, 1, NULL);
-	HANDLE exit_signal = CreateSemaphore(0, 0, 1, NULL);
-	if (IS_NULL(has_client_semaphore) || IS_NULL(exit_signal)) {
-		sll_free(nodes);
-		ht_free(students);
-		rb_free(ring_buffer);
-		closesocket(client_listen_socket);
-		closesocket(node_listen_socket);
-		WSACleanup();
 
-		return 0;
-	}
-
-	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, has_client_semaphore, exit_signal);
+	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, nodes, has_client_semaphore, exit_signal);
 	if (IS_NULL(client_information)) {
 		sll_free(nodes);
 		ht_free(students);
@@ -193,32 +214,58 @@ int main() {
 				// Node connected
 				SOCKET accepted_socket = accept_new_socket(node_listen_socket);
 
-				NodeInformation* node_information = init_node_information(students, nodes);
+				NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal);
 				if (IS_NULL(node_information)) {
 					break;
 				}
 
 				DWORD new_id;
 				HANDLE new_handle = CreateThread(NULL, 0, &integrity_update_th, node_information, 0, &new_id);
-
 				if (IS_NULL(new_handle)) {
 					break;
 				}
+
 				printf("[Receive_thread] A new Integrity_update_thread with ID=%lu has been started.\n", new_id);
 				set_node_socket(node_information, accepted_socket, new_id, new_handle);
 			}
 		}
 	}
 
+	Node* current = nodes->head;
+	char message = '1';
+
+	while (current != NULL) {
+
+		select_function(current->node_socket, WRITE);
+
+		int i_result = send(current->node_socket, (char*)&message, sizeof(char), 0);
+
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			i_result = shutdown(current->node_socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+			closesocket(current->node_socket);
+			break;
+		}
+		current = current->next_node;
+	}
+
 	// Terminate all threads
 	if (!IS_NULL(thread_handle)) {
-		ReleaseSemaphore(exit_signal, 1, NULL);
+		ReleaseSemaphore(exit_signal, 1 + nodes->counter, NULL);
 
 		WaitForSingleObject(thread_handle, INFINITE);
 
 		SAFE_HANDLE(thread_handle);
 	}
-	
+	else {
+		ReleaseSemaphore(exit_signal, nodes->counter, NULL);
+		Sleep(2000);
+	}
+
 	SAFE_HANDLE(thread_exit_handle);
 	SAFE_HANDLE(exit_signal_semaphore);
 

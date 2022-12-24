@@ -18,7 +18,7 @@ SinglyLinkedList* sll_create() {
 	return singly_linked_list;
 }
 
-Node* sll_new_node(NetworkNode value) {
+Node* sll_new_node(SOCKET value) {
 
 	Node* new_node = NULL;
 
@@ -28,21 +28,19 @@ Node* sll_new_node(NetworkNode value) {
 		return NULL;
 	}
 
-	new_node->value.node_socket = value.node_socket;
-	new_node->value.port = value.port;
+	new_node->node_socket = value;
 	new_node->next_node = NULL;
 
 	return new_node;
 }
 
-bool sll_insert_first(SinglyLinkedList* singly_linked_list, NetworkNode value) {
-
-	EnterCriticalSection(&singly_linked_list->sll_cs);
+bool sll_insert_first(SinglyLinkedList* singly_linked_list, SOCKET value) {
 
 	if (singly_linked_list == NULL) {
-		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return false;
 	}
+
+	EnterCriticalSection(&singly_linked_list->sll_cs);
 
 	Node* new_node = sll_new_node(value);
 
@@ -66,14 +64,13 @@ bool sll_insert_first(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 	return true;
 }
 
-bool sll_insert_last(SinglyLinkedList* singly_linked_list, NetworkNode value) {
-
-	EnterCriticalSection(&singly_linked_list->sll_cs);
+bool sll_insert_last(SinglyLinkedList* singly_linked_list, SOCKET value) {
 
 	if (singly_linked_list == NULL) {
-		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return false;
 	}
+
+	EnterCriticalSection(&singly_linked_list->sll_cs);
 
 	Node* new_node = sll_new_node(value);
 
@@ -102,15 +99,53 @@ bool sll_insert_last(SinglyLinkedList* singly_linked_list, NetworkNode value) {
 	return true;
 }
 
-void sll_show(SinglyLinkedList* singly_linked_list) {
+bool sll_delete(SinglyLinkedList* singly_linked_list, SOCKET value) {
+
+	if (singly_linked_list == NULL) {
+		return false;
+	}
 
 	EnterCriticalSection(&singly_linked_list->sll_cs);
 
+	Node* current = singly_linked_list->head;
+	Node* prev = NULL;
+
+	if (current != NULL && current->node_socket == value) {
+		singly_linked_list->head = current->next_node;
+		free(current);
+		singly_linked_list->counter--;
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
+		return true;
+	}
+
+	while (current != NULL && current->node_socket != value) {
+		prev = current;
+		current = current->next_node;
+	}
+
+	if (current == NULL) {
+		LeaveCriticalSection(&singly_linked_list->sll_cs);
+		return false;
+	}
+
+	prev->next_node = current->next_node;
+	free(current);
+
+	singly_linked_list->counter--;
+
+	LeaveCriticalSection(&singly_linked_list->sll_cs);
+
+	return true;
+}
+
+void sll_show(SinglyLinkedList* singly_linked_list) {
+
 	if (singly_linked_list == NULL) {
 		printf("The singly linked list not found. \n");
-		LeaveCriticalSection(&singly_linked_list->sll_cs);
 		return;
 	}
+
+	EnterCriticalSection(&singly_linked_list->sll_cs);
 
 	if (singly_linked_list->counter == 0) {
 		printf("The singly linked list is empty. \n");
@@ -122,7 +157,7 @@ void sll_show(SinglyLinkedList* singly_linked_list) {
 
 	while (current != NULL) {
 
-		printf("<%s> ", current->value);
+		printf("<%s> ", current->node_socket);
 
 		current = current->next_node;
 	}
@@ -142,6 +177,7 @@ void sll_free(SinglyLinkedList* singly_linked_list) {
 
 	while (current != NULL) {
 		temp = current->next_node;
+		closesocket(current->node_socket);
 		free(current);
 
 		current = temp;

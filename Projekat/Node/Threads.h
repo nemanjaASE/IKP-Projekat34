@@ -12,6 +12,15 @@
 
 #define SAFE_HANDLE(a) if(a){CloseHandle(a);}
 
+typedef enum two_phase_commit_t {
+	NODE_DISC = 1,
+	START,
+	ROLLBACK,
+	COMMIT,
+	YES,
+	NO
+} TwoPhaseCommit;
+
 typedef enum message_type_t {
 	TERMINATE = 0,
 	SEND
@@ -23,6 +32,7 @@ typedef struct client_information_t {
 	LPDWORD lp_thread_id;
 	HashTable* students;
 	RingBuffer* ring_buffer;
+	SinglyLinkedList* nodes;
 	HANDLE has_client_semaphore;
 	HANDLE exit_semaphore;
 
@@ -35,6 +45,8 @@ typedef struct node_information_t {
 	HANDLE node_thread_handle;
 	HashTable* students;
 	SinglyLinkedList* nodes;
+	RingBuffer* ring_buffer;
+	HANDLE exit_semaphore;
 
 } NodeInformation;
 
@@ -46,11 +58,13 @@ DWORD WINAPI client_th(LPVOID param);
 
 DWORD WINAPI integrity_update_th(LPVOID param);
 
+DWORD WINAPI node_th(LPVOID param);
+
 #pragma endregion Threads
 
 #pragma region ClientInformation
 
-ClientInformation* init_client_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, HANDLE has_client_semaphore, HANDLE exit_semaphore);
+ClientInformation* init_client_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes,HANDLE has_client_semaphore, HANDLE exit_semaphore);
 
 void set_client_socket(ClientInformation* client_information, SOCKET socket);
 
@@ -60,7 +74,7 @@ void free_client_information(ClientInformation* client_information);
 
 #pragma region NodeInformation
 
-NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes);
+NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes, RingBuffer* ring_buffer, HANDLE exit_semaphore);
 
 void set_node_socket(NodeInformation* node_information, SOCKET socket, WORD thread_id, HANDLE node_thread_handle);
 
