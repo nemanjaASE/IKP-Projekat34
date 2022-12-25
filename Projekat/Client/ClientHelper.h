@@ -6,7 +6,7 @@
 #include "TCPUtils.h"
 #include "Student.h"
 
-#define PORT_MIN 30000
+#define PORT_MIN 10000
 #define NODE_IP_ADDRESS "127.0.0.1"
 
 #define FIRST_NAME_MAX 25

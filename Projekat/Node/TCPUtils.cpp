@@ -92,7 +92,7 @@ void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 
 	int i_result = 0;
 
-	while (WaitForSingleObject(exit_signal, 10) == WAIT_TIMEOUT)
+	while (WaitForSingleObject(exit_signal, 1) == WAIT_TIMEOUT)
 	{
 		FD_ZERO(&set);
 		FD_SET(socket, &set);
@@ -107,12 +107,11 @@ void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 			return;
 		}
 
-
 		if (i_result == 0) {
 			continue;
 		}
 		else if (i_result == SOCKET_ERROR) {
-			printf("\nError occured in select function.. %d\n", WSAGetLastError());
+			printf("\n[1] Error occured in select function.. %d\n", WSAGetLastError());
 			return;
 		}
 		else {
@@ -146,12 +145,11 @@ void select_function(SOCKET socket, SelectOption option) {
 			return;
 		}
 
-
 		if (i_result == 0) {
 			continue;
 		}
 		else if (i_result == SOCKET_ERROR) {
-			printf("\nError occured in select function.. %d\n", WSAGetLastError());
+			printf("\n[0] Error occured in select function.. %d\n", WSAGetLastError());
 			return;
 		}
 		else {

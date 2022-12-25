@@ -17,6 +17,12 @@ int main() {
 	sockaddr_in node_address;
 
 	// Data Structures
+	HandleList* handles = hl_create();
+	if (IS_NULL(handles)) {
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+	}
 
 	SinglyLinkedList* nodes = sll_create();
 	HashTable* students = ht_create(100);
@@ -26,6 +32,7 @@ int main() {
 		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
+		hl_free(handles);
 		closesocket(client_listen_socket);
 		closesocket(node_listen_socket);
 		WSACleanup();
@@ -39,9 +46,9 @@ int main() {
 	client_port = nh_port_number_input((char*)"CLIENT");
 	node_port = nh_port_number_input((char*)"NODE");
 
-	getchar();
+	char c = getchar();
 
-	// Firt node on network or n-th
+	// First node on network or n-th
 
 	HANDLE has_client_semaphore = CreateSemaphore(0, 1, 1, NULL);
 	HANDLE exit_signal = CreateSemaphore(0, 0, 64, NULL);
@@ -49,6 +56,7 @@ int main() {
 		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
+		hl_free(handles);
 		closesocket(client_listen_socket);
 		closesocket(node_listen_socket);
 		WSACleanup();
@@ -58,9 +66,16 @@ int main() {
 
 
 	if (!nh_integrity_update(nodes, students)) {
+		SAFE_HANDLE(has_client_semaphore);
+		SAFE_HANDLE(exit_signal);
 		rb_free(ring_buffer);
 		sll_free(nodes);
+		hl_free(handles);
 		ht_free(students);
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+
 		return -1;
 	}
 	else {
@@ -69,8 +84,12 @@ int main() {
 
 		if (!nh_init_listen_socket(&client_listen_socket, &client_address, client_port)) {
 			sll_free(nodes);
-			rb_free(ring_buffer);
 			ht_free(students);
+			rb_free(ring_buffer);
+			hl_free(handles);
+			closesocket(client_listen_socket);
+			closesocket(node_listen_socket);
+			WSACleanup();
 			return -1;
 		}
 		else {
@@ -84,6 +103,10 @@ int main() {
 			sll_free(nodes);
 			ht_free(students);
 			rb_free(ring_buffer);
+			hl_free(handles);
+			closesocket(client_listen_socket);
+			closesocket(node_listen_socket);
+			WSACleanup();
 			return -1;
 		}
 		else {
@@ -93,31 +116,38 @@ int main() {
 		}
 
 		Node* current = nodes->head;
+		DWORD new_id;
 		while (current != NULL) {
 
-			DWORD new_id;
-
-			NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal);
+			NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal, handles);
 			if (IS_NULL(node_information)) {
 				break;
 			}
 
+			set_node_socket(node_information, current->node_socket);
+
 			HANDLE new_handle = CreateThread(NULL, 0, &node_th, node_information, 0, &new_id);
 			if (IS_NULL(new_handle)) {
+				sll_free(nodes);
+				ht_free(students);
+				rb_free(ring_buffer);
+				hl_free(handles);
+				closesocket(client_listen_socket);
+				closesocket(node_listen_socket);
 				free_node_information(node_information);
+				WSACleanup();
 				return -1;
 			}
-
 			printf("[Receive_thread] A new Node_thread with ID=%lu has been started.\n", new_id);
 
-			set_node_socket(node_information, current->node_socket, new_id, new_handle);
-			Sleep(100);
-
+			set_node_thread(node_information, new_id, new_handle);
+			hl_insert_first(handles, new_handle);
 			current = current->next_node;
 		}
 	}
 	
 	ht_show(students);
+
 	// Exit_Thread
 
 	DWORD thread_exit_id = -1;
@@ -128,6 +158,9 @@ int main() {
 
 	if (IS_NULL(thread_exit_handle)) {
 
+		SAFE_HANDLE(has_client_semaphore);
+		SAFE_HANDLE(exit_signal);
+		hl_free(handles);
 		sll_free(nodes);
 		rb_free(ring_buffer);
 		ht_free(students);
@@ -145,6 +178,11 @@ int main() {
 
 	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, nodes, has_client_semaphore, exit_signal);
 	if (IS_NULL(client_information)) {
+
+		SAFE_HANDLE(thread_exit_handle);
+		SAFE_HANDLE(has_client_semaphore);
+		SAFE_HANDLE(exit_signal);
+		hl_free(handles);
 		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
@@ -156,6 +194,7 @@ int main() {
 	}
 
 	// Driver code
+
 	fd_set read_fds;
 	FD_ZERO(&read_fds);
 
@@ -171,8 +210,10 @@ int main() {
 		FD_ZERO(&read_fds);
 
 		if (WaitForSingleObject(has_client_semaphore, 10) == WAIT_OBJECT_0) {
+			// Client disconnected
 
 			client_counter = 0;
+
 			if (!IS_NULL(thread_handle)) {
 				SAFE_HANDLE(thread_handle);
 				closesocket(client_information->client_socket);
@@ -201,6 +242,7 @@ int main() {
 
 			if (FD_ISSET(client_listen_socket, &read_fds)) {
 				// Client connected
+
 				SOCKET accepted_socket = accept_new_socket(client_listen_socket);
 				set_client_socket(client_information, accepted_socket);
 
@@ -212,12 +254,15 @@ int main() {
 
 			if (FD_ISSET(node_listen_socket, &read_fds)) {
 				// Node connected
+
 				SOCKET accepted_socket = accept_new_socket(node_listen_socket);
 
-				NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal);
+				NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal, handles);
 				if (IS_NULL(node_information)) {
 					break;
 				}
+
+				set_node_socket(node_information, accepted_socket);
 
 				DWORD new_id;
 				HANDLE new_handle = CreateThread(NULL, 0, &integrity_update_th, node_information, 0, &new_id);
@@ -226,35 +271,15 @@ int main() {
 				}
 
 				printf("[Receive_thread] A new Integrity_update_thread with ID=%lu has been started.\n", new_id);
-				set_node_socket(node_information, accepted_socket, new_id, new_handle);
+				set_node_thread(node_information, new_id, new_handle);
 			}
 		}
 	}
-
-	Node* current = nodes->head;
-	char message = '1';
-
-	while (current != NULL) {
-
-		select_function(current->node_socket, WRITE);
-
-		int i_result = send(current->node_socket, (char*)&message, sizeof(char), 0);
-
-		if (i_result == SOCKET_ERROR || i_result == 0)
-		{
-			i_result = shutdown(current->node_socket, SD_SEND);
-			if (i_result == SOCKET_ERROR)
-			{
-				printf("Shutdown failed with error: %d\n", WSAGetLastError());
-			}
-			closesocket(current->node_socket);
-			break;
-		}
-		current = current->next_node;
-	}
-
-	// Terminate all threads
+	
 	if (!IS_NULL(thread_handle)) {
+
+		// Client still connected
+
 		ReleaseSemaphore(exit_signal, 1 + nodes->counter, NULL);
 
 		WaitForSingleObject(thread_handle, INFINITE);
@@ -262,9 +287,26 @@ int main() {
 		SAFE_HANDLE(thread_handle);
 	}
 	else {
+
+		// Client disconnected
+
 		ReleaseSemaphore(exit_signal, nodes->counter, NULL);
-		Sleep(2000);
 	}
+
+	// Wait for threads safe exit
+
+	wait_for_all_threads(handles);
+
+	Sleep(1000);
+
+	// Notify other nodes
+
+	graceful_exit(nodes->head);
+
+	printf("\n\n Press any key to exit.");
+
+	 c = getchar();
+	 c = getchar();
 
 	SAFE_HANDLE(thread_exit_handle);
 	SAFE_HANDLE(exit_signal_semaphore);
@@ -272,16 +314,12 @@ int main() {
 	ht_free(students);
 	rb_free(ring_buffer);
 	sll_free(nodes);
+	hl_free(handles);
 	free_client_information(client_information);
 
 	closesocket(client_listen_socket);
 	closesocket(node_listen_socket);
 	WSACleanup();
-
-	printf("\n\n Press any key to exit.");
-	
-	char c = getchar();
- 	c = getchar();
 
 	return 0;
 }

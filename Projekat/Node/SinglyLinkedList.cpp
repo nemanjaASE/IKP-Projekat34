@@ -111,6 +111,7 @@ bool sll_delete(SinglyLinkedList* singly_linked_list, SOCKET value) {
 	Node* prev = NULL;
 
 	if (current != NULL && current->node_socket == value) {
+
 		singly_linked_list->head = current->next_node;
 		free(current);
 		singly_linked_list->counter--;
@@ -157,7 +158,7 @@ void sll_show(SinglyLinkedList* singly_linked_list) {
 
 	while (current != NULL) {
 
-		printf("<%s> ", current->node_socket);
+		printf("<%llu> ", current->node_socket);
 
 		current = current->next_node;
 	}

@@ -92,7 +92,7 @@ bool nh_integrity_update(SinglyLinkedList* nodes, HashTable* students) {
 	printf("First Node? [Y/N] ");
 
 	char option;
-	scanf_s("%c", &option);
+	scanf_s("%c", &option, 1);
 
 	if (option == 'N' || option == 'n') {
 
@@ -224,13 +224,19 @@ unsigned long nh_receive_number_of_students(Node* first_node) {
 
 void nh_receive_students(Node* first_node, unsigned long number_of_students, HashTable* students) {
 
-	unsigned int bytes_recieved = 0;
+	int bytes_recieved = 0;
 	int i_result = 0;
 	int body_size = 0;
 	int end = 0;
 
 	Header header;
 	int header_size = 3 * sizeof(uint8_t);
+
+	char* buffer = (char*)malloc(FIRST_NAME_MAX + LAST_NAME_MAX + INDEX_MAX + 1);
+	if (IS_NULL(buffer)) {
+		return;
+	}
+
 	Student* student = create_student();
 
 	while (number_of_students > 0) {
@@ -260,12 +266,6 @@ void nh_receive_students(Node* first_node, unsigned long number_of_students, Has
 		printf("The node sent payload message length: %d\n", body_size);
 
 		bytes_recieved = 0;
-		char* buffer = (char*)malloc(sizeof(char) * body_size + 1);
-
-		if (IS_NULL(buffer)) {
-			free(student);
-			return;
-		}
 
 		// Receive body
 		do
@@ -282,8 +282,6 @@ void nh_receive_students(Node* first_node, unsigned long number_of_students, Has
 		buffer[body_size] = '\0';
 
 		if (end == 1) {
-			free(buffer);
-			free_student(student);
 			break;
 		}
 
@@ -297,11 +295,57 @@ void nh_receive_students(Node* first_node, unsigned long number_of_students, Has
 				, student->index);
 		}
 
-		free(buffer);
 		number_of_students--;
 	}
 
+	free(buffer);
 	free_student(student);
 }
 
 #pragma endregion IntegrityUpdate
+
+#pragma region Threads
+
+void wait_for_all_threads(HandleList* handles) {
+
+	NodeHandle* current = handles->head;
+
+	printf("Number of handles: %u\n", handles->counter);
+
+	for (unsigned int i = 0; i < handles->counter; i++) {
+		WaitForSingleObject(current->thread_handle, INFINITE);
+
+		current = current->next_node;
+	}
+}
+
+#pragma endregion Threads
+
+#pragma region Shutdown
+
+void graceful_exit(Node* head) {
+
+	Node* current = head;
+	char message = '1';
+
+	while (current != NULL) {
+
+		select_function(current->node_socket, WRITE);
+
+		int i_result = send(current->node_socket, (char*)&message, sizeof(char), 0);
+
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			printf("Send Error!\n");
+			i_result = shutdown(current->node_socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+			closesocket(current->node_socket);
+		};
+		current = current->next_node;
+	}
+}
+
+#pragma endregion Shutdown

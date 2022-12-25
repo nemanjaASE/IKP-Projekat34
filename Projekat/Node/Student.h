@@ -30,7 +30,7 @@ void fill_student(Student* student, char* first_name, char* last_name, char* ind
 
 void update_student(Student* student, char* first_name, char* last_name, char* index);
 
-size_t fill_header(Student student, unsigned char* header);
+uint8_t fill_header(Student student, unsigned char* header);
 
 char* serialize_student(Student* student);
 

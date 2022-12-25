@@ -9,6 +9,7 @@
 #include "HashTable.h"
 #include "RingBuffer.h"
 #include "SinglyLinkedList.h"
+#include "HandleList.h"
 
 #define SAFE_HANDLE(a) if(a){CloseHandle(a);}
 
@@ -41,12 +42,13 @@ typedef struct client_information_t {
 typedef struct node_information_t {
 
 	SOCKET node_socket;
-	WORD lp_thread_id;
+	DWORD lp_thread_id;
 	HANDLE node_thread_handle;
 	HashTable* students;
 	SinglyLinkedList* nodes;
 	RingBuffer* ring_buffer;
 	HANDLE exit_semaphore;
+	HandleList* handles;
 
 } NodeInformation;
 
@@ -74,9 +76,11 @@ void free_client_information(ClientInformation* client_information);
 
 #pragma region NodeInformation
 
-NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes, RingBuffer* ring_buffer, HANDLE exit_semaphore);
+NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes, RingBuffer* ring_buffer, HANDLE exit_semaphore, HandleList* handles);
 
-void set_node_socket(NodeInformation* node_information, SOCKET socket, WORD thread_id, HANDLE node_thread_handle);
+void set_node_socket(NodeInformation* node_information, SOCKET socket);
+
+void set_node_thread(NodeInformation* node_information, DWORD thread_id, HANDLE node_thread_handle);
 
 void free_node_information(NodeInformation* node_information);
 

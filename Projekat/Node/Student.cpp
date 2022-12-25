@@ -101,7 +101,7 @@ void free_student(Student* student) {
 	free(student);
 }
 
-size_t fill_header(Student student, unsigned char* header) {
+uint8_t fill_header(Student student, unsigned char* header) {
 
 	Header header_struct;
 
@@ -121,7 +121,7 @@ char* serialize_student(Student* student) {
 	int last_name_len = strlen(student->last_name);
 	int index_len = strlen(student->index);
 
-	int msg_len = first_name_len + last_name_len + index_len;
+	uint8_t msg_len = first_name_len + last_name_len + index_len;
 
 	buffer = (char*)malloc(sizeof(char) * (msg_len + 1));
 	if (IS_NULL(buffer)) {

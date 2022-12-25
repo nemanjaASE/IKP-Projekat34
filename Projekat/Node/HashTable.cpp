@@ -79,12 +79,11 @@ HashTableEntry* ht_new_entry(char* key, Student student) {
 
 bool ht_add(HashTable* hash_table, char* key, Student student) {
 
-    EnterCriticalSection(&hash_table->ht_cs);
-
     if (hash_table == NULL || key == NULL) {
-        LeaveCriticalSection(&hash_table->ht_cs);
         return false;
     }
+
+    EnterCriticalSection(&hash_table->ht_cs);
 
     if (ht_find_by_key(hash_table, key)) {
         LeaveCriticalSection(&hash_table->ht_cs);
@@ -120,12 +119,11 @@ bool ht_add(HashTable* hash_table, char* key, Student student) {
 
 HashTableEntry* ht_get_by_key(HashTable* hash_table, char* key) {
 
-    EnterCriticalSection(&hash_table->ht_cs);
-
     if (hash_table == NULL) {
-        LeaveCriticalSection(&hash_table->ht_cs);
         return NULL;
     }
+
+    EnterCriticalSection(&hash_table->ht_cs);
 
     unsigned int slot = hash(key, hash_table->size);
 
@@ -147,12 +145,11 @@ HashTableEntry* ht_get_by_key(HashTable* hash_table, char* key) {
 
 bool ht_find_by_key(HashTable* hash_table, char* key) {
 
-    EnterCriticalSection(&hash_table->ht_cs);
-
     if (hash_table == NULL) {
-        LeaveCriticalSection(&hash_table->ht_cs);
         return false;
     }
+
+    EnterCriticalSection(&hash_table->ht_cs);
 
     unsigned int slot = hash(key, hash_table->size);
 
@@ -174,13 +171,12 @@ bool ht_find_by_key(HashTable* hash_table, char* key) {
 
 void ht_show(HashTable* hash_table) {
 
-    EnterCriticalSection(&hash_table->ht_cs);
-
     if (hash_table == NULL) {
         printf("The hash table not found.");
-        LeaveCriticalSection(&hash_table->ht_cs);
         return;
     }
+
+    EnterCriticalSection(&hash_table->ht_cs);
 
     if (hash_table->counter == 0) {
         printf("The hash table is empty.");
@@ -193,7 +189,7 @@ void ht_show(HashTable* hash_table) {
         if (hash_table->entries[i] == NULL)
             continue;
 
-        printf("\t Entry[%d]: ", i);
+        printf("\t Entry[%llu]: ", i);
 
         HashTableEntry* current = hash_table->entries[i];
 

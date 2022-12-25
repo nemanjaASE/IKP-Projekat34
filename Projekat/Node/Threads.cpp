@@ -34,6 +34,12 @@ DWORD WINAPI client_th(LPVOID param) {
 	int i_result = 0;
 	Header header;
 	int end = 0;
+
+	char* buffer = (char*)malloc(sizeof(char) * (FIRST_NAME_MAX + LAST_NAME_MAX + INDEX_MAX + 1));
+	if (IS_NULL(buffer)) {
+		return -1;
+	}
+
 	Student* student = create_student();
 
 	while (1) {
@@ -62,12 +68,6 @@ DWORD WINAPI client_th(LPVOID param) {
 		printf("[Thread_ID:%lu] The client sent payload message length: %d\n", *client_information->lp_thread_id, body_size);
 
 		bytes_recieved = 0;
-		char* buffer = (char*)malloc(sizeof(char) * body_size + 1);
-
-		if (IS_NULL(buffer)) {
-			free(student);
-			return -1;
-		}
 
 		do
 		{
@@ -83,7 +83,6 @@ DWORD WINAPI client_th(LPVOID param) {
 		buffer[body_size] = '\0';
 
 		if (end == 1) {
-			free(buffer);
 			free_student(student);
 			break;
 		}
@@ -111,9 +110,9 @@ DWORD WINAPI client_th(LPVOID param) {
 
 		printf("[Thread_ID:%lu] ", *client_information->lp_thread_id);
 		ht_show(client_information->students);
-		free(buffer);
 	}
 
+	free(buffer);
 	free_student(student);
 	ReleaseSemaphore(client_information->has_client_semaphore, 1, NULL);
 	printf("[Thread_ID:%lu] Terminating...\n", *client_information->lp_thread_id);
@@ -245,7 +244,7 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 				}
 
 				current = current->next_entry;
-				Sleep(1000);
+				Sleep(50);
 			}
 		}
 		free(header);
@@ -255,55 +254,79 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 	
 	if (sll_insert_first(node_information->nodes, node_information->node_socket)) {
 		printf("[Thread_ID:%lu] New node successfully added.\n", node_information->lp_thread_id);
+
+
+		NodeInformation* new_node_information = init_node_information(node_information->students
+			, node_information->nodes
+			, node_information->ring_buffer
+			, node_information->exit_semaphore
+			, node_information->handles);
+		if (IS_NULL(new_node_information)) {
+			free_node_information(node_information);
+			return 0;
+		}
+
+		set_node_socket(new_node_information, node_information->node_socket);
+
+		DWORD old_id = node_information->lp_thread_id;
+		free(node_information);
+		DWORD new_id;
+		HANDLE new_handle = CreateThread(NULL, 0, &node_th, new_node_information, 0, &new_id);
+		if (IS_NULL(new_handle)) {
+			free_node_information(node_information);
+			return -1;
+		}
+		else {
+
+			set_node_thread(new_node_information, new_id, new_handle);
+
+			hl_insert_first(new_node_information->handles, new_handle);
+			
+			printf("[Thread_ID:%lu] A new Node_thread with ID=%lu has been started.\n", old_id, new_id);
+		}
+
+		printf("[Thread_ID:%lu] Terminating...\n", old_id);
 	}
 	else {
 		printf("[Thread_ID:%lu] Adding new node failed.\n", node_information->lp_thread_id);
 	}
 
-	DWORD old_id = node_information->lp_thread_id;
-	DWORD new_id;
-	HANDLE new_handle = CreateThread(NULL, 0, &node_th, node_information, 0, &new_id);
-	if (IS_NULL(new_handle)) {
-		free_node_information(node_information);
-		return -1;
-	}
-	else {
-		node_information->node_thread_handle = new_handle;
-		node_information->lp_thread_id = new_id;
-		printf("[Thread_ID:%lu] A new Node_thread with ID=%lu has been started.\n", old_id, node_information->lp_thread_id);
-	}
-
-	printf("[Thread_ID:%lu] Terminating...\n", old_id);
-
 	return 0;
 }
 
 DWORD WINAPI node_th(LPVOID param) {
+	
+	Sleep(1000);
 
 	NodeInformation* node_information = (NodeInformation*)param;
-	printf("[Thread_ID:%lu] Waiting...\n", node_information->lp_thread_id);
-
+	
 	int i_result = -1;
-	int end = 0;
 	char number = -1;
-
+	
 	while (1) {
 
 		select_function(node_information->node_socket, READ, node_information->exit_semaphore);
 
 		i_result = recv(node_information->node_socket, (char*)&number, sizeof(char), 0);
 		if (i_result == SOCKET_ERROR || i_result == 0) {
-			end = 1;
 			break;
 		}
 
-		if ((number - '0') == NODE_DISC) {
-			printf("[Thread_ID:%lu] Node %d disconeccted...\n", node_information->lp_thread_id, node_information->node_socket);
-			if (sll_delete(node_information->nodes, node_information->node_socket)) {
-				printf("[Thread_ID:%lu] Node %d deleted...Nodes: %d\n", node_information->lp_thread_id, node_information->node_socket, node_information->nodes->counter);
-				closesocket(node_information->node_socket);
-			}
 
+		if ((number - '0') == NODE_DISC) {
+
+			printf("[Thread_ID:%lu] Node %llu disconeccted...\n", node_information->lp_thread_id
+																, node_information->node_socket);
+
+			if (sll_delete(node_information->nodes, node_information->node_socket)) {
+
+				hl_delete(node_information->handles, node_information->handles);
+				printf("[Thread_ID:%lu] Node %llu deleted...Nodes: %d\n", node_information->lp_thread_id
+					, node_information->node_socket
+					, node_information->nodes->counter);
+			}
+			hl_delete(node_information->handles, node_information->node_thread_handle);
+			closesocket(node_information->node_socket);
 			break;
 		}
 	}
@@ -360,7 +383,7 @@ void free_client_information(ClientInformation* client_information) {
 
 #pragma region NodeInformation
 
-NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes, RingBuffer* ring_buffer, HANDLE exit_semaphore) {
+NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* nodes, RingBuffer* ring_buffer, HANDLE exit_semaphore, HandleList* handles) {
 
 	if (IS_NULL(students) || IS_NULL(nodes) || IS_NULL(ring_buffer)) {
 		return NULL;
@@ -375,24 +398,26 @@ NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* no
 	node_information->students = students;
 	node_information->ring_buffer = ring_buffer;
 	node_information->exit_semaphore = exit_semaphore;
+	node_information->handles = handles;
 
 	return node_information;
 }
 
-void set_node_socket(NodeInformation* node_information, SOCKET socket, WORD thread_id, HANDLE node_thread_handle) {
+void set_node_socket(NodeInformation* node_information, SOCKET socket) {
 
 	if (IS_NULL(node_information)) {
 		return;
 	}
 
 	node_information->node_socket = socket;
+}
+
+void set_node_thread(NodeInformation* node_information, DWORD thread_id, HANDLE node_thread_handle) {
 	node_information->lp_thread_id = thread_id;
 	node_information->node_thread_handle = node_thread_handle;
 }
 
 void free_node_information(NodeInformation* node_information) {
-	
-	SAFE_HANDLE(node_information->node_thread_handle);
 	free(node_information);
 }
 

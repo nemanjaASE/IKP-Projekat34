@@ -69,6 +69,9 @@
     <ClCompile Include="Threads.cpp">
       <Filter>Source Files\Threads</Filter>
     </ClCompile>
+    <ClCompile Include="HandleList.cpp">
+      <Filter>Source Files\DataStructures</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCPUtils.h">
@@ -94,6 +97,9 @@
     </ClInclude>
     <ClInclude Include="Threads.h">
       <Filter>Header Files\Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="HandleList.h">
+      <Filter>Header Files\DataStructures</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
