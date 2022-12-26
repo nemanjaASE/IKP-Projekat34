@@ -25,10 +25,12 @@ int main() {
 	}
 
 	SinglyLinkedList* nodes = sll_create();
-	HashTable* students = ht_create(100);
+	HashTable* students = ht_create(50);
 	RingBuffer* ring_buffer = rb_create(50);
-	if (IS_NULL(students) || IS_NULL(nodes) || IS_NULL(ring_buffer)) {
+	VoteList* votes = vl_create();
+	if (IS_NULL(students) || IS_NULL(nodes) || IS_NULL(ring_buffer) || IS_NULL(votes)) {
 
+		vl_free(votes);
 		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
@@ -39,6 +41,7 @@ int main() {
 
 		return 0;
 	}
+
 
 	unsigned long client_port = 0;
 	unsigned long node_port = 0;
@@ -52,7 +55,10 @@ int main() {
 
 	HANDLE has_client_semaphore = CreateSemaphore(0, 1, 1, NULL);
 	HANDLE exit_signal = CreateSemaphore(0, 0, 64, NULL);
-	if (IS_NULL(has_client_semaphore) || IS_NULL(exit_signal)) {
+	HANDLE ring_buffer_semaphore = CreateSemaphore(0, 0, 20, NULL);
+	if (IS_NULL(has_client_semaphore) || IS_NULL(exit_signal) || IS_NULL(ring_buffer_semaphore)) {
+
+		vl_free(votes);
 		sll_free(nodes);
 		ht_free(students);
 		rb_free(ring_buffer);
@@ -64,10 +70,10 @@ int main() {
 		return 0;
 	}
 
-
 	if (!nh_integrity_update(nodes, students)) {
 		SAFE_HANDLE(has_client_semaphore);
 		SAFE_HANDLE(exit_signal);
+		vl_free(votes);
 		rb_free(ring_buffer);
 		sll_free(nodes);
 		hl_free(handles);
@@ -119,7 +125,12 @@ int main() {
 		DWORD new_id;
 		while (current != NULL) {
 
-			NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal, handles);
+			NodeInformation* node_information = init_node_information(students
+																	 , nodes
+																	 , ring_buffer
+																	 , exit_signal
+																	 , handles
+																	 , votes);
 			if (IS_NULL(node_information)) {
 				break;
 			}
@@ -160,6 +171,7 @@ int main() {
 
 		SAFE_HANDLE(has_client_semaphore);
 		SAFE_HANDLE(exit_signal);
+		vl_free(votes);
 		hl_free(handles);
 		sll_free(nodes);
 		rb_free(ring_buffer);
@@ -176,12 +188,13 @@ int main() {
 	DWORD thread_id = -1;
 	HANDLE thread_handle = NULL;
 
-	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, nodes, has_client_semaphore, exit_signal);
+	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, nodes, has_client_semaphore, exit_signal, ring_buffer_semaphore);
 	if (IS_NULL(client_information)) {
 
 		SAFE_HANDLE(thread_exit_handle);
 		SAFE_HANDLE(has_client_semaphore);
 		SAFE_HANDLE(exit_signal);
+		vl_free(votes);
 		hl_free(handles);
 		sll_free(nodes);
 		ht_free(students);
@@ -204,6 +217,37 @@ int main() {
 
 	int client_counter = 0;
 	int i_result = 0;
+
+	// Coordinator thread
+	DWORD coordinator_id = -1;
+	CoordinatorInformation* coordinator_information = init_coordinator_information(&coordinator_id
+																				   , students
+																				   , ring_buffer
+																				   , nodes
+																				   , exit_signal
+																				   , ring_buffer_semaphore
+																				   , votes);
+
+	HANDLE coordinator_handle = CreateThread(NULL, 0, &coordinator_th, coordinator_information, 0, &coordinator_id);
+	if (IS_NULL(coordinator_handle)) {
+
+		SAFE_HANDLE(thread_exit_handle);
+		SAFE_HANDLE(has_client_semaphore);
+		SAFE_HANDLE(exit_signal);
+		free_client_information(client_information);
+		free(coordinator_information);
+		vl_free(votes);
+		hl_free(handles);
+		sll_free(nodes);
+		ht_free(students);
+		rb_free(ring_buffer);
+		closesocket(client_listen_socket);
+		closesocket(node_listen_socket);
+		WSACleanup();
+
+		return -1;
+	}
+
 
 	while (WaitForSingleObject(exit_signal_semaphore, 10) == WAIT_TIMEOUT) {
 
@@ -257,7 +301,12 @@ int main() {
 
 				SOCKET accepted_socket = accept_new_socket(node_listen_socket);
 
-				NodeInformation* node_information = init_node_information(students, nodes, ring_buffer, exit_signal, handles);
+				NodeInformation* node_information = init_node_information(  students
+																		  , nodes
+																		  , ring_buffer
+																		  , exit_signal
+																		  , handles
+																		  , votes);
 				if (IS_NULL(node_information)) {
 					break;
 				}
@@ -280,7 +329,7 @@ int main() {
 
 		// Client still connected
 
-		ReleaseSemaphore(exit_signal, 1 + nodes->counter, NULL);
+		ReleaseSemaphore(exit_signal, 2 + nodes->counter, NULL);
 
 		WaitForSingleObject(thread_handle, INFINITE);
 
@@ -290,7 +339,7 @@ int main() {
 
 		// Client disconnected
 
-		ReleaseSemaphore(exit_signal, nodes->counter, NULL);
+		ReleaseSemaphore(exit_signal, 1 + nodes->counter, NULL);
 	}
 
 	// Wait for threads safe exit
@@ -311,10 +360,12 @@ int main() {
 	SAFE_HANDLE(thread_exit_handle);
 	SAFE_HANDLE(exit_signal_semaphore);
 
+	free(coordinator_information);
 	ht_free(students);
 	rb_free(ring_buffer);
 	sll_free(nodes);
 	hl_free(handles);
+	vl_free(votes);
 	free_client_information(client_information);
 
 	closesocket(client_listen_socket);

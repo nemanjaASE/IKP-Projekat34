@@ -72,6 +72,9 @@
     <ClCompile Include="HandleList.cpp">
       <Filter>Source Files\DataStructures</Filter>
     </ClCompile>
+    <ClCompile Include="VoteList.cpp">
+      <Filter>Source Files\DataStructures</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TCPUtils.h">
@@ -99,6 +102,9 @@
       <Filter>Header Files\Threads</Filter>
     </ClInclude>
     <ClInclude Include="HandleList.h">
+      <Filter>Header Files\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="VoteList.h">
       <Filter>Header Files\DataStructures</Filter>
     </ClInclude>
   </ItemGroup>

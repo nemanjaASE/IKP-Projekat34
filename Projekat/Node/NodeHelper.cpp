@@ -222,6 +222,89 @@ unsigned long nh_receive_number_of_students(Node* first_node) {
 	return students_num;
 }
 
+bool nh_send_header(SOCKET socket, unsigned char* header) {
+
+	int i_result = -1;
+	int bytes_sent = 0;
+	size_t header_size = 3 * sizeof(uint8_t);
+
+	do {
+
+		select_function(socket, WRITE);
+
+		i_result = send(socket, (char*)header + bytes_sent, header_size - bytes_sent, 0);
+
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			i_result = shutdown(socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+			
+			return false;
+		}
+
+		bytes_sent += i_result;
+
+	} while (bytes_sent < header_size);
+
+	return true;
+}
+
+bool nh_send_student(SOCKET socket, char* body, int body_size) {
+
+	int i_result = -1;
+	int bytes_sent = 0;
+
+	do {
+		select_function(socket, WRITE);
+
+		i_result = send(socket, body + bytes_sent, body_size - bytes_sent, 0);
+
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			i_result = shutdown(socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+			return false;
+		}
+
+		bytes_sent += i_result;
+
+	} while (bytes_sent < body_size);
+
+	return true;
+}
+
+bool nh_send_number_of_students(SOCKET socket, char* message) {
+
+	int i_result = -1;
+	int bytes_sent = 0;
+
+	do {
+		select_function(socket, WRITE);
+
+		i_result = send(socket, message + bytes_sent, sizeof(unsigned long) - bytes_sent, 0);
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			i_result = shutdown(socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+
+			return false;;
+		}
+		bytes_sent += i_result;
+
+	} while (bytes_sent < sizeof(unsigned long));
+
+	return true;
+}
+
 void nh_receive_students(Node* first_node, unsigned long number_of_students, HashTable* students) {
 
 	int bytes_recieved = 0;
@@ -349,3 +432,171 @@ void graceful_exit(Node* head) {
 }
 
 #pragma endregion Shutdown
+
+#pragma region Transaction
+
+bool nh_send_start_message(Node* head) {
+
+	Node* current = head;
+	char message = '2';
+
+	while (current != NULL) {
+
+		select_function(current->node_socket, WRITE);
+
+		int i_result = send(current->node_socket, (char*)&message, sizeof(char), 0);
+
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			i_result = shutdown(current->node_socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+			closesocket(current->node_socket);
+			return false;
+		}
+		current = current->next_node;
+	}
+
+	return true;
+}
+
+bool nh_send_header(Node* head, unsigned char* header) {
+
+	size_t header_size = 3 * sizeof(uint8_t);
+	int i_result = -1;
+	Node* current = head;
+
+	while (current != NULL) {
+
+		unsigned int bytes_sent = 0;
+
+		do {
+			select_function(current->node_socket, WRITE);
+
+			i_result = send(current->node_socket, (char*)header + bytes_sent, header_size - bytes_sent, 0);
+
+			if (i_result == SOCKET_ERROR || i_result == 0)
+			{
+				i_result = shutdown(current->node_socket, SD_SEND);
+				if (i_result == SOCKET_ERROR)
+				{
+					printf("Shutdown failed with error: %d\n", WSAGetLastError());
+				}
+				return false;
+			}
+
+			bytes_sent += i_result;
+
+		} while (bytes_sent < header_size);
+
+		current = current->next_node;
+	}
+
+	return true;
+}
+
+bool nh_send_student(Node* head, char* body, int body_len) {
+
+	Node* current = head;
+	int i_result = 0;
+
+	while (current != NULL) {
+
+		unsigned int bytes_sent = 0;
+
+		do {
+			select_function(current->node_socket, WRITE);
+
+			i_result = send(current->node_socket, body + bytes_sent, body_len - bytes_sent, 0);
+
+			if (i_result == SOCKET_ERROR || i_result == 0)
+			{
+				i_result = shutdown(current->node_socket, SD_SEND);
+				if (i_result == SOCKET_ERROR)
+				{
+					printf("Shutdown failed with error: %d\n", WSAGetLastError());
+				}
+				return false;
+			}
+
+			bytes_sent += i_result;
+
+		} while (bytes_sent < body_len);
+
+		current = current->next_node;
+	}
+
+	return true;
+}
+
+bool nh_send_decision(Node* head, char* message) {
+
+	Node* current = head;
+
+	while (current != NULL) {
+
+		select_function(current->node_socket, WRITE);
+
+		int i_result = send(current->node_socket, (char*)&message, sizeof(char), 0);
+
+		if (i_result == SOCKET_ERROR || i_result == 0)
+		{
+			i_result = shutdown(current->node_socket, SD_SEND);
+			if (i_result == SOCKET_ERROR)
+			{
+				printf("Shutdown failed with error: %d\n", WSAGetLastError());
+			}
+			closesocket(current->node_socket);
+			return false;
+		}
+		current = current->next_node;
+	}
+
+	return true;
+
+}
+
+bool nh_receive_header(SOCKET socket, Header* header) {
+
+	int bytes_recieved = 0;
+	int i_result = 0;
+	int header_size = 3 * sizeof(uint8_t);
+
+	do
+	{
+		select_function(socket, READ);
+		i_result = recv(socket, (char*)header + bytes_recieved, header_size - bytes_recieved, 0);
+		if (i_result == SOCKET_ERROR || i_result == 0) {
+			return false;
+		}
+		bytes_recieved += i_result;
+
+	} while (bytes_recieved < header_size);
+
+	return true;
+}
+
+bool nh_receive_student(SOCKET socket, char* buffer, int body_size) {
+
+	int bytes_recieved = 0;
+	int i_result = 0;
+
+	do
+	{
+		select_function(socket, READ);
+		i_result = recv(socket, buffer + bytes_recieved, body_size - bytes_recieved, 0);
+		if (i_result == SOCKET_ERROR || i_result == 0) {
+			break;
+		}
+		bytes_recieved += i_result;
+
+	} while (bytes_recieved < body_size);
+
+	buffer[body_size] = '\0';
+
+	return true;
+}
+
+#pragma endregion Transaction

@@ -38,6 +38,8 @@ void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal);
 
 void select_function(SOCKET socket, SelectOption option);
 
+int select_function_RW(SOCKET socket);
+
 SOCKET accept_new_socket(SOCKET listenSocket);
 
 #endif // __TCP_UTILS__

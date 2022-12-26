@@ -149,6 +149,7 @@
     <ClCompile Include="Student.cpp" />
     <ClCompile Include="TCPUtils.cpp" />
     <ClCompile Include="Threads.cpp" />
+    <ClCompile Include="VoteList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DistributedTransaction.h" />
@@ -160,6 +161,7 @@
     <ClInclude Include="Student.h" />
     <ClInclude Include="TCPUtils.h" />
     <ClInclude Include="Threads.h" />
+    <ClInclude Include="VoteList.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

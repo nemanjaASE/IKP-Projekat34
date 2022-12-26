@@ -38,6 +38,12 @@ bool nh_broadcast_message(SinglyLinkedList* nodes);
 
 unsigned long nh_receive_number_of_students(Node* first_node);
 
+bool nh_send_header(SOCKET socket, unsigned char* header);
+
+bool nh_send_student(SOCKET socket, char* buffer, int body_size);
+
+bool nh_send_number_of_students(SOCKET socket, char* message);
+
 void nh_receive_students(Node* first_node, unsigned long number_of_students, HashTable* students);
 
 #pragma endregion
@@ -53,5 +59,22 @@ void wait_for_all_threads(HandleList* handles);
 void graceful_exit(Node* head);
 
 #pragma endregion Shutdown
+
+#pragma region Transaction
+
+bool nh_send_start_message(Node* head);
+
+bool nh_send_header(Node* head, unsigned char* header);
+
+bool nh_send_student(Node* head, char* body, int body_len);
+
+bool nh_send_decision(Node* head, char* message);
+
+bool nh_receive_header(SOCKET socket, Header* header);
+
+bool nh_receive_student(SOCKET socket, char* buffer, int body_size);
+
+#pragma endregion Transaction
+
 
 #endif NODE_HELPER_H

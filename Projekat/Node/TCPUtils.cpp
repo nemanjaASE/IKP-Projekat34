@@ -158,6 +158,47 @@ void select_function(SOCKET socket, SelectOption option) {
 	}
 }
 
+int select_function_RW(SOCKET socket) {
+
+	while(1)
+	{
+		FD_SET set;
+		FD_SET write;
+		timeval timeVal;
+
+		FD_ZERO(&set);
+		FD_ZERO(&write);
+
+		FD_SET(socket, &set);
+		FD_SET(socket, &write);
+
+		timeVal.tv_sec = 0;
+		timeVal.tv_usec = 0;
+
+		int i_result;
+
+		i_result = select(0, &set, &write, NULL, &timeVal);
+
+		if (i_result == 0) {
+			Sleep(10);
+			continue;
+		}
+		else if (i_result == SOCKET_ERROR) {
+			printf("\n[3] Error occured in select function.. %d\n", WSAGetLastError());
+		}
+		else {
+			if (FD_ISSET(socket, &set))
+			{
+				return 0;
+			}
+			else if (FD_ISSET(socket, &write))
+			{
+				return 1;
+			}
+		}
+	}
+}
+
 SOCKET accept_new_socket(SOCKET listen_socket) {
 
 	SOCKET accepted_socket = accept(listen_socket, NULL, NULL);
