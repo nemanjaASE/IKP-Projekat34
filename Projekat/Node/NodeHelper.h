@@ -66,13 +66,17 @@ bool nh_send_start_message(Node* head);
 
 bool nh_send_header(Node* head, unsigned char* header);
 
-bool nh_send_student(Node* head, char* body, int body_len);
+bool nh_send_student(Node* head, char* body, unsigned int body_len);
 
 bool nh_send_decision(Node* head, char* message);
 
 bool nh_receive_header(SOCKET socket, Header* header);
 
-bool nh_receive_student(SOCKET socket, char* buffer, int body_size);
+bool nh_receive_header(SOCKET socket, Header* header, HANDLE exit_semaphore);
+
+bool nh_receive_student(SOCKET socket, char* buffer, unsigned int body_size);
+
+bool nh_receive_student(SOCKET socket, char* buffer, unsigned int body_size, HANDLE exit_semaphore);
 
 #pragma endregion Transaction
 

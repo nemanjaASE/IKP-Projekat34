@@ -172,14 +172,14 @@ bool ht_find_by_key(HashTable* hash_table, char* key) {
 void ht_show(HashTable* hash_table) {
 
     if (hash_table == NULL) {
-        printf("The hash table not found.");
+        printf("\tThe hash table not found.");
         return;
     }
 
     EnterCriticalSection(&hash_table->ht_cs);
 
     if (hash_table->counter == 0) {
-        printf("The hash table is empty.");
+        printf("\tThe hash table is empty.");
         LeaveCriticalSection(&hash_table->ht_cs);
         return;
     }
@@ -189,7 +189,7 @@ void ht_show(HashTable* hash_table) {
         if (hash_table->entries[i] == NULL)
             continue;
 
-        printf("\t Entry[%llu]: ", i);
+        printf("\tEntry[%llu]: ", i);
 
         HashTableEntry* current = hash_table->entries[i];
 

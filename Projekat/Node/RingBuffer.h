@@ -11,13 +11,11 @@
 #define IS_NULL(a) (a == NULL)
 
 typedef struct ring_buffer_t {
-
 	size_t size;
 	unsigned int push_idx;
 	unsigned int pop_idx;
 	DistributedTransaction* buffer;
 	CRITICAL_SECTION rb_cs;
-
 } RingBuffer;
 
 RingBuffer* rb_create(size_t size);

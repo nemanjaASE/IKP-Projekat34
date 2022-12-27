@@ -34,7 +34,7 @@ bool set_non_blocking_mode(SOCKET* socket);
 
 bool set_listening_mode(SOCKET* listen_socket);
 
-void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal);
+int select_function(SOCKET socket, SelectOption option, HANDLE exit_signal);
 
 void select_function(SOCKET socket, SelectOption option);
 

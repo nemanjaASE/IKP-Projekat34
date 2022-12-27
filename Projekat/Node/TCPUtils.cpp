@@ -82,7 +82,7 @@ bool set_listening_mode(SOCKET* listen_socket) {
 	return true;
 }
 
-void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
+int select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 
 	FD_SET set;
 	timeval time_val;
@@ -104,7 +104,7 @@ void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 		else
 		{
 			printf("\nUnknown SelectOption!\n");
-			return;
+			return -1;
 		}
 
 		if (i_result == 0) {
@@ -112,12 +112,14 @@ void select_function(SOCKET socket, SelectOption option, HANDLE exit_signal) {
 		}
 		else if (i_result == SOCKET_ERROR) {
 			printf("\n[1] Error occured in select function.. %d\n", WSAGetLastError());
-			return;
+			return -2;
 		}
 		else {
-			return;
+			return 1;
 		}
 	}
+
+	return -3;
 }
 
 void select_function(SOCKET socket, SelectOption option) {

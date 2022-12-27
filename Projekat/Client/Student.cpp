@@ -108,19 +108,19 @@ size_t fill_header(Student student, unsigned char* header) {
 
 	memcpy(header, (const unsigned char*)&header_struct, sizeof(Header));
 
-	return header_struct.first_name_len + header_struct.last_name_len + header_struct.index_len;
+	return (size_t)header_struct.first_name_len + header_struct.last_name_len + header_struct.index_len;
 }
 
 char* serialize_student(Student* student) {
 
 	char* buffer = NULL;
-	int first_name_len = strlen(student->first_name);
-	int last_name_len = strlen(student->last_name);
-	int index_len = strlen(student->index);
+	int first_name_len = (int)strlen(student->first_name);
+	int last_name_len = (int)strlen(student->last_name);
+	int index_len = (int)strlen(student->index);
 
 	int msg_len = first_name_len + last_name_len + index_len;
 
-	buffer = (char*)malloc(sizeof(char) * (msg_len + 1));
+	buffer = (char*)malloc(sizeof(char) * ((int64_t)msg_len + 1));
 	if (IS_NULL(buffer)) {
 		printf("Not enough memory.");
 		return NULL;

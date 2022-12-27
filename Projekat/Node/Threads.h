@@ -31,7 +31,6 @@ typedef enum message_type_t {
 typedef struct client_information_t {
 
 	SOCKET client_socket;
-	LPDWORD lp_thread_id;
 	HashTable* students;
 	RingBuffer* ring_buffer;
 	SinglyLinkedList* nodes;
@@ -44,7 +43,6 @@ typedef struct client_information_t {
 typedef struct node_information_t {
 
 	SOCKET node_socket;
-	DWORD lp_thread_id;
 	HANDLE node_thread_handle;
 	HashTable* students;
 	SinglyLinkedList* nodes;
@@ -57,7 +55,6 @@ typedef struct node_information_t {
 
 typedef struct coordinator_information_t {
 
-	LPDWORD lp_thread_id;
 	HashTable* students;
 	SinglyLinkedList* nodes;
 	RingBuffer* ring_buffer;
@@ -83,7 +80,7 @@ DWORD WINAPI coordinator_th(LPVOID param);
 
 #pragma region ClientInformation
 
-ClientInformation* init_client_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes,HANDLE has_client_semaphore, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore);
+ClientInformation* init_client_information(HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes,HANDLE has_client_semaphore, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore);
 
 void set_client_socket(ClientInformation* client_information, SOCKET socket);
 
@@ -97,7 +94,7 @@ NodeInformation* init_node_information(HashTable* students, SinglyLinkedList* no
 
 void set_node_socket(NodeInformation* node_information, SOCKET socket);
 
-void set_node_thread(NodeInformation* node_information, DWORD thread_id, HANDLE node_thread_handle);
+void set_node_thread(NodeInformation* node_information, HANDLE node_thread_handle);
 
 void free_node_information(NodeInformation* node_information);
 
@@ -105,7 +102,7 @@ void free_node_information(NodeInformation* node_information);
 
 #pragma region CoordinatorInformation
 
-CoordinatorInformation* init_coordinator_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore, VoteList* votes);
+CoordinatorInformation* init_coordinator_information(HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore, VoteList* votes);
 
 #pragma endregion CoordinatorInformation
 

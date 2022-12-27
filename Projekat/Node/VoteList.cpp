@@ -106,7 +106,7 @@ bool vl_insert_last(VoteList* vote_list, int value) {
 
 int vl_get(VoteList* vote_list, int index) {
 
-	if (vote_list == NULL || vote_list->counter < index) {
+	if (vote_list == NULL || vote_list->counter < (unsigned int)index) {
 		return 0;
 	}
 
@@ -149,7 +149,7 @@ bool vl_delete_first(VoteList* vote_list) {
 
 bool vl_update(VoteList* vote_list, int index, int value) {
 
-	if (vote_list == NULL || vote_list->counter < index) {
+	if (vote_list == NULL || vote_list->counter < (unsigned int)index) {
 		return false;
 	}
 

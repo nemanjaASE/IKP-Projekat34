@@ -22,9 +22,6 @@
     <Filter Include="Source Files\NodeHelper">
       <UniqueIdentifier>{1fb7d61c-217e-40c9-bb12-52d2fd4a62dc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\NodeHelper">
-      <UniqueIdentifier>{50c028e9-290c-45ac-a66b-953ee80df2c6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Student">
       <UniqueIdentifier>{21eb5e70-70aa-43eb-a463-db01e6d5eb1c}</UniqueIdentifier>
     </Filter>
@@ -42,6 +39,9 @@
     </Filter>
     <Filter Include="Source Files\Threads">
       <UniqueIdentifier>{93ec37de-2992-4700-b2a2-c635f3f32b24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NodeHelper">
+      <UniqueIdentifier>{50c028e9-290c-45ac-a66b-953ee80df2c6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

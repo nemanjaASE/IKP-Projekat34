@@ -8,32 +8,31 @@ DWORD WINAPI exit_th(LPVOID param) {
 
 	char server_end;
 
-	printf("\n[Exit_Thread] Press ESC to close server..\n");
+	printf("\n\t[Exit] Press ESC to close server..\n");
 
 	do {
 
 		server_end = _getch();
+
 	} while (server_end != 27);
 
-	printf("[Exit_Thread] Server is closing down...\n");
-
-
+	printf("\t[Exit] Server is closing down...\n");
 
 	ReleaseSemaphore(*exit_signal, 1, NULL);
-
 
 	return 0;
 }
 
 DWORD WINAPI client_th(LPVOID param) {
+
 	ClientInformation* client_information = (ClientInformation*)param;
 
-	uint8_t bytes_recieved = 0;
-	int header_size = 3 * sizeof(uint8_t);
-	uint8_t body_size = 0;
+	unsigned int body_size = 0;
 	int i_result = 0;
 	Header header;
 	int end = 0;
+	DistributedTransaction distributed_transaction;
+	DWORD thread_id = GetCurrentThreadId();
 
 	char* buffer = (char*)malloc(sizeof(char) * (FIRST_NAME_MAX + LAST_NAME_MAX + INDEX_MAX + 1));
 	if (IS_NULL(buffer)) {
@@ -44,46 +43,15 @@ DWORD WINAPI client_th(LPVOID param) {
 
 	while (1) {
 
-		bytes_recieved = 0;
-		i_result = 0;
-		body_size = 0;
-
-		do
-		{
-			select_function(client_information->client_socket, READ, client_information->exit_semaphore);
-			i_result = recv(client_information->client_socket, (char*)&header + bytes_recieved, header_size - bytes_recieved, 0);
-			if (i_result == SOCKET_ERROR || i_result == 0){
-				end = 1;
-				break;
-			}
-			bytes_recieved += i_result;
-
-		} while (bytes_recieved < header_size);
-
-		if (end == 1) {
+		if (!nh_receive_header(client_information->client_socket, &header, client_information->exit_semaphore)) {
 			break;
 		}
 
 		body_size = header.first_name_len + header.last_name_len + header.index_len;
-		printf("[Thread_ID:%lu] The client sent payload message length: %d\n", *client_information->lp_thread_id, body_size);
+		printf("\t[Client:%lu] The client sent payload message length: %d\n", thread_id
+																		    , body_size);
 
-		bytes_recieved = 0;
-
-		do
-		{
-			select_function(client_information->client_socket, READ, client_information->exit_semaphore);
-			i_result = recv(client_information->client_socket, buffer + bytes_recieved, body_size - bytes_recieved, 0);
-			if (i_result == SOCKET_ERROR || i_result == 0){
-				end = 1;
-				break;
-			}
-			bytes_recieved += i_result;
-
-		} while (bytes_recieved < body_size);
-		buffer[body_size] = '\0';
-
-		if (end == 1) {
-			free_student(student);
+		if (!nh_receive_student(client_information->client_socket, buffer, body_size, client_information->exit_semaphore)) {
 			break;
 		}
 
@@ -94,19 +62,20 @@ DWORD WINAPI client_th(LPVOID param) {
 			// Empty nodes list
 
 			if (!ht_add(client_information->students, student->index, *student)) {
-				printf("[Thread_ID:%lu] Student with '%s' already exists!\n", *client_information->lp_thread_id, student->index);
+				printf("\t[Client:%lu] Student with '%s' already exists!\n", thread_id
+																		   , student->index);
 			}
 			else {
-				printf("[Thread_ID:%lu] The student '%s:%s:%s' successfully inserted.\n", *client_information->lp_thread_id, student->first_name
-					, student->last_name
-					, student->index);
+				printf("\t[Client:%lu] The student '%s:%s:%s' successfully inserted.\n", thread_id
+																					   , student->first_name
+																					   , student->last_name
+																					   , student->index);
 			}
 
 			ht_show(client_information->students);
 		}
 		else {
 
-			DistributedTransaction distributed_transaction;
 			distributed_transaction.student = *student;
 
 			rb_push_value(client_information->ring_buffer, distributed_transaction);
@@ -120,7 +89,7 @@ DWORD WINAPI client_th(LPVOID param) {
 	free(buffer);
 	free_student(student);
 	ReleaseSemaphore(client_information->has_client_semaphore, 1, NULL);
-	printf("[Thread_ID:%lu] Terminating...\n", *client_information->lp_thread_id);
+	printf("\t[Client:%lu] Terminating...\n", thread_id);
 
 	return 0;
 }
@@ -128,11 +97,18 @@ DWORD WINAPI client_th(LPVOID param) {
 DWORD WINAPI integrity_update_th(LPVOID param) {
 
 	NodeInformation* node_information = (NodeInformation*)param;
-	DWORD thread_id = node_information->lp_thread_id;
 	VoteList* votes = node_information->votes;
 
-	char number = -1;
-	int i_result = 0;
+	int i_result = -1;
+	size_t header_size = 3 * sizeof(uint8_t);
+	unsigned int body_len = 0;
+	char number;
+	char* body = NULL;
+	HashTableEntry* current;
+	unsigned int bytes_sent;
+	DWORD new_thread_id;
+	DWORD thread_id = GetCurrentThreadId();
+	HANDLE new_thread_handle = NULL;
 
 	char* message_to_send = (char*)malloc(sizeof(unsigned long));
 	if (IS_NULL(message_to_send)) {
@@ -153,7 +129,7 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 
 	if ((number - '0') == SEND) {
 
-		printf("[Thread_ID:%lu] Intregrity update starting...\n", thread_id);
+		printf("\t[IntegrityUpdate:%lu] Intregrity update starting...\n", thread_id);
 
 		sprintf(message_to_send, "%lu", node_information->students->counter);
 
@@ -161,20 +137,19 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 
 		nh_send_number_of_students(node_information->node_socket, message_to_send);
 
-		size_t header_size = 3 * sizeof(uint8_t);
-		char* body = NULL;
+		body = NULL;
 
 		for (size_t i = 0; i < node_information->students->size; i++) {
 
 			if (node_information->students->entries[i] == NULL)
 				continue;
 
-			HashTableEntry* current = node_information->students->entries[i];
+			current = node_information->students->entries[i];
 
 			while (current != NULL) {
 
-				size_t body_len = fill_header(*current->student, header);
-				unsigned int bytes_sent = 0;
+				body_len = (unsigned int)fill_header(*current->student, header);
+				bytes_sent = 0;
 
 				// Send header
 				nh_send_header(node_information->node_socket, header);
@@ -192,19 +167,19 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 			}
 		}
 
-		printf("[Thread_ID:%lu] Intregrity update successfully ended!\n", thread_id);
+		printf("\t[IntegrityUpdate:%lu] Intregrity update successfully ended!\n", thread_id);
 	}
 	
 	if (sll_insert_first(node_information->nodes, node_information->node_socket)) {
 
-		printf("[Thread_ID:%lu] New node successfully added.\n", thread_id);
+		printf("\t[IntegrityUpdate:%lu] New node successfully added.\n", thread_id);
 
-		NodeInformation* new_node_information = init_node_information(node_information->students
-			, node_information->nodes
-			, node_information->ring_buffer
-			, node_information->exit_semaphore
-			, node_information->handles
-			, node_information->votes);
+		NodeInformation* new_node_information = init_node_information(  node_information->students
+																	  , node_information->nodes
+																	  , node_information->ring_buffer
+																	  , node_information->exit_semaphore
+																	  , node_information->handles
+																	  , node_information->votes);
 
 		if (IS_NULL(new_node_information)) {
 			free_node_information(node_information);
@@ -213,26 +188,26 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 
 		set_node_socket(new_node_information, node_information->node_socket);
 
-		DWORD old_id = thread_id;
 		free(node_information);
-		DWORD new_id;
-		HANDLE new_handle = CreateThread(NULL, 0, &node_th, new_node_information, 0, &new_id);
-		if (IS_NULL(new_handle)) {
+
+		new_thread_handle = CreateThread(NULL, 0, &node_th, new_node_information, 0, &new_thread_id);
+		if (IS_NULL(new_thread_handle)) {
 			return -1;
 		}
 		else {
 
-			set_node_thread(new_node_information, new_id, new_handle);
+			set_node_thread(new_node_information, new_thread_handle);
 
-			hl_insert_first(new_node_information->handles, new_handle);
+			hl_insert_first(new_node_information->handles, new_thread_handle);
 
-			printf("[Thread_ID:%lu] A new Node_thread with ID=%lu has been started.\n", old_id, new_id);
+			printf("\t[IntegrityUpdate:%lu] A new Node_thread with ID=%lu has been started.\n", thread_id
+																							  , new_thread_id);
 		}
 
-		printf("[Thread_ID:%lu] Terminating...\n", old_id);
+		printf("\t[IntegrityUpdate:%lu] Terminating...\n", thread_id);
 	}
 	else {
-		printf("[Thread_ID:%lu] Adding new node failed.\n", thread_id);
+		printf("\t[IntegrityUpdate:%lu] Adding new node failed.\n", thread_id);
 	}
 
 	free(message_to_send);
@@ -243,15 +218,7 @@ DWORD WINAPI integrity_update_th(LPVOID param) {
 
 DWORD WINAPI node_th(LPVOID param) {
 
-	Sleep(1000);
-
 	NodeInformation* node_information = (NodeInformation*)param;
-	SOCKET connected_node = node_information->node_socket;
-	DWORD thread_id = node_information->lp_thread_id;
-	SinglyLinkedList* nodes = node_information->nodes;
-	HashTable* students = node_information->students;
-	HandleList* handles = node_information->handles;
-	VoteList* votes = node_information->votes;
 
 	Student* student = create_student();
 	if (IS_NULL(student)) {
@@ -265,115 +232,155 @@ DWORD WINAPI node_th(LPVOID param) {
 	}
 
 	int i_result = -1;
+	unsigned int body_size = 0;
 	char number = -1;
+	char option;
+	char answer;
+	BOOL end = false;
+	Header header;
+	DWORD thread_id = GetCurrentThreadId();
 
-	while (1) {
+	SOCKET connected_node = node_information->node_socket;
+	SinglyLinkedList* nodes = node_information->nodes;
+	HashTable* students = node_information->students;
+	HandleList* handles = node_information->handles;
+	VoteList* votes = node_information->votes;
 
-		select_function(connected_node, READ, node_information->exit_semaphore);
+	while (!end) {
+
+		if (select_function(connected_node, READ, node_information->exit_semaphore) != 1){
+			break;
+		}
 
 		i_result = recv(connected_node, (char*)&number, sizeof(char), 0);
 		if (i_result == SOCKET_ERROR || i_result == 0) {
 			break;
 		}
 
+		option = (number - '0');
 
-		if ((number - '0') == NODE_DISC) {
-
-			printf("[Thread_ID:%lu] Node %llu disconeccted...\n", thread_id
-				, connected_node);
-
-			if (sll_delete(nodes, connected_node)) {
-
-				hl_delete(handles, node_information->node_thread_handle);
-				printf("[Thread_ID:%lu] Node %llu deleted...Nodes: %u\n", thread_id
-					, connected_node
-					, node_information->nodes->counter);
-			}
-			hl_delete(handles, node_information->node_thread_handle);
-			closesocket(connected_node);
-
-			break;
-		}
-		else if ((number - '0') == START) {
-
-			printf("[Thread_ID:%lu] Start Transaction...\n", thread_id);
-
-			int body_size = 0;
-			Header header;
-
-			//Receive header
-
-			nh_receive_header(connected_node, &header);
-			body_size = header.first_name_len + header.last_name_len + header.index_len;
-			printf("The node sent payload message length: %d\n", body_size);
-
-			// Receive body
-
-			nh_receive_student(connected_node, buffer, body_size);
-
-			// Get student from raw values
-
-			deserialize_student(student, buffer, header);
-
-			// Check
-
-			char answer = '6'; // No
-
-			if (!ht_find_by_key(students, student->index)) {
-				answer = '5';
-			}
-
-			Sleep(1000);
-
-			select_function(connected_node, WRITE);
-
-			int i_result = send(connected_node, (char*)&answer, sizeof(char), 0);
-
-			if (i_result == SOCKET_ERROR || i_result == 0)
+		switch(option)
+		{	
+			case NODE_DISC:
 			{
-				printf("Send Error!\n");
-				i_result = shutdown(connected_node, SD_SEND);
-				if (i_result == SOCKET_ERROR)
-				{
-					printf("Shutdown failed with error: %d\n", WSAGetLastError());
+				printf("\t[Node:%lu] Node %llu disconeccted...\n", thread_id
+															     , connected_node);
+
+				if (sll_delete(nodes, connected_node)) {
+
+					hl_delete(handles, node_information->node_thread_handle);
+					printf("\t[Node:%lu] Node %llu deleted...Nodes: %u\n", thread_id
+																		 , connected_node
+																		 , node_information->nodes->counter);
+
+					hl_delete(handles, node_information->node_thread_handle);
+					closesocket(connected_node);
 				}
-				closesocket(connected_node);
+
+				end = true;
+
 				break;
-			};
-		}
-		else if((number - '0') == YES)
-		{
-			vl_insert_first(votes, 1);
-			Sleep(100);
-			ReleaseSemaphore(votes->vote_signal, 1, NULL);
-			
-		}
-		else if ((number - '0') == NO)
-		{
-			vl_insert_first(votes, 0);
-			Sleep(100);
-			ReleaseSemaphore(votes->vote_signal, 1, NULL);
-		}
-		else if ((number - '0') == ROLLBACK) {
-
-			printf("[Thread_ID:%lu] Rollback transaction...\n", thread_id);
-		}
-		else if ((number - '0') == COMMIT) {
-
-			printf("[Thread_ID:%lu] Commit transaction\n", thread_id);
-
-			if (ht_add(students, student->index, *student)) {
-
-				printf("The student '%s:%s:%s' successfully inserted.\n", student->first_name
-					, student->last_name
-					, student->index);
-
-				ht_show(students);
 			}
-		}
+			case START:
+			{
+				printf("\t[Node:%lu] Start Transaction...\n", thread_id);
+
+				body_size = 0;
+
+				//Receive header
+
+				nh_receive_header(connected_node, &header);
+				body_size = (unsigned int)(header.first_name_len + header.last_name_len + header.index_len);
+				printf("\t[Node:%lu] The node sent payload message length: %d\n", thread_id
+																				, body_size);
+
+				// Receive body
+
+				nh_receive_student(connected_node, buffer, body_size);
+
+				// Get student from raw values
+
+				deserialize_student(student, buffer, header);
+
+				// Check
+
+				answer = '6'; // No
+
+				if (!ht_find_by_key(students, student->index)) {
+					answer = '5';
+				}
+
+				Sleep(200);
+
+				select_function(connected_node, WRITE);
+
+				i_result = -1;
+
+				i_result = send(connected_node, (char*)&answer, sizeof(char), 0);
+
+				if (i_result == SOCKET_ERROR || i_result == 0)
+				{
+					printf("\t[Node:%lu] Send Error!\n", GetCurrentThreadId());
+					i_result = shutdown(connected_node, SD_SEND);
+					if (i_result == SOCKET_ERROR)
+					{
+						printf("\t[Node:%lu] Shutdown failed with error: %d\n", GetCurrentThreadId()
+							, WSAGetLastError());
+					}
+					closesocket(connected_node);
+				}
+
+				break;
+			}
+			case YES:
+			{
+				vl_insert_first(votes, 1);
+				Sleep(10);
+				ReleaseSemaphore(votes->vote_signal, 1, NULL);
+
+				break;
+			}
+			case NO:
+			{
+				vl_insert_first(votes, 0);
+				Sleep(10);
+				ReleaseSemaphore(votes->vote_signal, 1, NULL);
+
+				break;
+			}
+			case ROLLBACK:
+			{
+				printf("\t[Node:%lu] Rollback transaction...\n", thread_id);
+
+				break;
+			}
+			case COMMIT:
+			{
+				printf("\t[Node:%lu] Commit transaction\n", thread_id);
+
+				if (ht_add(students, student->index, *student)) {
+
+					printf("\t[Node:%lu] The student '%s:%s:%s' successfully inserted.\n", thread_id
+																						 , student->first_name
+																					     , student->last_name
+																						 , student->index);
+
+					ht_show(students);
+				}
+
+				break;
+			}
+			default:
+			{
+				printf("\t[Node:%lu] Unknown command!\n", thread_id);
+
+				break;
+			}
+		};
+
 	}
 
-	printf("[Thread_ID:%lu] Terminating...\n", thread_id);
+	printf("\t[Node:%lu] Terminating...\n", thread_id);
 
 	free_student(student);
 	free(buffer);
@@ -385,18 +392,26 @@ DWORD WINAPI node_th(LPVOID param) {
 DWORD WINAPI coordinator_th(LPVOID param) {
 
 	CoordinatorInformation* coordinator_information = (CoordinatorInformation*)param;
-	DWORD thread_id = *coordinator_information->lp_thread_id;
 	RingBuffer* ring_buffer = coordinator_information->ring_buffer;
 
 	DistributedTransaction distributed_transaction;
 	Student student;
+	int i = 0;
+	int number_of_nodes;
+	char* body = NULL;
+	BOOL end = false;
+	DWORD wait_result;
+	DWORD thread_id = GetCurrentThreadId();
+	Node* head = NULL;
+	unsigned int body_len = 0;
+	HANDLE vote_signal = coordinator_information->votes->vote_signal;
 
 	HANDLE semaphores[2] = 
 			{coordinator_information->exit_semaphore, coordinator_information->ring_buffer_semaphore};
 
 	unsigned char* header = (unsigned char*)malloc(sizeof(Header));
 	if (IS_NULL(header)) {
-		printf("[Thread_ID:%lu] Terminating...\n", thread_id);
+		printf("\t[Coordinator:%lu] Terminating...\n", thread_id);
 		return -1;
 	}
 
@@ -405,63 +420,104 @@ DWORD WINAPI coordinator_th(LPVOID param) {
 		distributed_transaction = rb_pop_value(ring_buffer);
 		student = distributed_transaction.student;
 
-		printf("[Thread_ID:%lu] DISTRIBUTED TRANSACTION STARTED\n", thread_id);
-		Node* head = coordinator_information->nodes->head;
+		printf("\t[Coordinator:%lu] DISTRIBUTED TRANSACTION STARTED\n", thread_id);
+		head = coordinator_information->nodes->head;
 
 		// Send start message
 
-		nh_send_start_message(head);
+		if (!nh_send_start_message(head)) {
+			continue;
+		}
 		
 		// Send header
 
-		size_t body_len = fill_header(student, header);
+		body_len = (unsigned int)fill_header(student, header);
 
-		nh_send_header(head, header);
+		if (body_len <= 0) {
+			continue;
+		}
+
+		if (!nh_send_header(head, header)) {
+			continue;
+		}
 
 		// Send student
 
-		char* body = serialize_student(&student);
+		body = serialize_student(&student);
 
-		nh_send_student(head, body, (int)body_len);
+		if (IS_NULL(body)) {
+			continue;
+		}
+
+		if (!nh_send_student(head, body, (int)body_len)) {
+			free(body);
+			continue;
+		}
 
 		free(body);
 
-		int i = 0;
-		int number_of_nodes = coordinator_information->nodes->counter;
+		i = 0;
+		number_of_nodes = coordinator_information->nodes->counter;
+		end = false;
 
-		while (WaitForSingleObject(coordinator_information->votes->vote_signal, INFINITE) == WAIT_OBJECT_0) {
+		while (!end) {
 
-			i++;
+			wait_result = WaitForSingleObject(vote_signal, 5000);
 
-			if (i == number_of_nodes) {
-				break;
+			switch (wait_result)
+			{
+				case WAIT_OBJECT_0:
+				{
+					i++;
+
+					if (i == number_of_nodes) {
+						end = true;
+					}
+
+					break;
+				}
+				case WAIT_TIMEOUT: {
+
+					printf("\t[Coordinator:%lu] Timeout \n", thread_id);
+
+					end = true;
+
+					break;
+				}
+				default: {
+
+					printf("\t[Coordinator:%lu] Error %lu \n", thread_id
+															 , GetLastError());
+
+					break;
+				}
 			}
 		}
 
 		if (!vl_check_votes(coordinator_information->votes)) {
 			// Rollback
-			Sleep(200);
+			Sleep(20);
 			nh_send_decision(head, (char*)'3');
 		}
 		else {
 			// Commit
-			Sleep(200);
+			Sleep(20);
 			nh_send_decision(head, (char*)'4');
 
 			//Apply changes locally
 			ht_add(coordinator_information->students, student.index, student);
 		}
 
-		Sleep(500);
+		Sleep(30);
 
 		vl_clear(coordinator_information->votes);
 
-		printf("[Thread_ID:%lu] END OF DISTRIBUTED TRANSACTION\n", thread_id);
+		printf("\t[Coordinator:%lu] END OF DISTRIBUTED TRANSACTION\n", thread_id);
 		ht_show(coordinator_information->students);
 	}
 
 	free(header);
-	printf("[Thread_ID:%lu] Ended\n", thread_id);
+	printf("\t[Coordinator:%lu] Ended\n", thread_id);
 
 	return 0;
 }
@@ -470,7 +526,7 @@ DWORD WINAPI coordinator_th(LPVOID param) {
 
 #pragma region ClientInformation
 
-ClientInformation* init_client_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes, HANDLE has_client_semaphore, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore) {
+ClientInformation* init_client_information(HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes, HANDLE has_client_semaphore, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore) {
 
 	if (IS_NULL(students) || IS_NULL(ring_buffer) || IS_NULL(nodes)) {
 		return NULL;
@@ -484,7 +540,6 @@ ClientInformation* init_client_information(LPDWORD thread_id, HashTable* student
 	client_information->students = students;
 	client_information->ring_buffer = ring_buffer;
 	client_information->nodes = nodes;
-	client_information->lp_thread_id = thread_id;
 	client_information->has_client_semaphore = has_client_semaphore;
 	client_information->exit_semaphore = exit_semaphore;
 	client_information->ring_buffer_semaphore = ring_buffer_semaphore;
@@ -544,8 +599,7 @@ void set_node_socket(NodeInformation* node_information, SOCKET socket) {
 	node_information->node_socket = socket;
 }
 
-void set_node_thread(NodeInformation* node_information, DWORD thread_id, HANDLE node_thread_handle) {
-	node_information->lp_thread_id = thread_id;
+void set_node_thread(NodeInformation* node_information, HANDLE node_thread_handle) {
 	node_information->node_thread_handle = node_thread_handle;
 }
 
@@ -557,7 +611,7 @@ void free_node_information(NodeInformation* node_information) {
 
 #pragma region CoordinatorInformation
 
-CoordinatorInformation* init_coordinator_information(LPDWORD thread_id, HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore, VoteList* votes) {
+CoordinatorInformation* init_coordinator_information(HashTable* students, RingBuffer* ring_buffer, SinglyLinkedList* nodes, HANDLE exit_semaphore, HANDLE ring_buffer_semaphore, VoteList* votes) {
 
 	CoordinatorInformation* coordinator_information = (CoordinatorInformation*)malloc(sizeof(CoordinatorInformation));
 	if (IS_NULL(coordinator_information)) {
@@ -567,7 +621,6 @@ CoordinatorInformation* init_coordinator_information(LPDWORD thread_id, HashTabl
 	coordinator_information->students = students;
 	coordinator_information->ring_buffer = ring_buffer;
 	coordinator_information->nodes = nodes;
-	coordinator_information->lp_thread_id = thread_id;
 	coordinator_information->exit_semaphore = exit_semaphore;
 	coordinator_information->ring_buffer_semaphore = ring_buffer_semaphore;
 	coordinator_information->votes = votes;

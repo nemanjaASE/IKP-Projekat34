@@ -125,7 +125,7 @@ int ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, ch
 	do {
 		select_function(connect_socket, WRITE);
 
-		i_result = send(connect_socket, (char*)header + bytes_sent, header_size - bytes_sent, 0);
+		i_result = send(connect_socket, (char*)header + bytes_sent, (unsigned int)header_size - bytes_sent, 0);
 
 		if (i_result == SOCKET_ERROR || i_result == 0)
 		{
@@ -150,7 +150,7 @@ int ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, ch
 	do {
 		select_function(connect_socket, WRITE);
 
-		i_result = send(connect_socket, buffer + bytes_sent, buffer_size - bytes_sent, 0);
+		i_result = send(connect_socket, buffer + bytes_sent, (unsigned int)buffer_size - bytes_sent, 0);
 
 		if (i_result == SOCKET_ERROR || i_result == 0)
 		{
@@ -165,7 +165,7 @@ int ch_send(SOCKET connect_socket, unsigned char* header, size_t header_size, ch
 
 		bytes_sent += i_result;
 
-	} while (bytes_sent < buffer_size);
+	} while (bytes_sent < (unsigned int)buffer_size);
 
 	return end;
 }

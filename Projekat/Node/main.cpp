@@ -149,9 +149,9 @@ int main() {
 				WSACleanup();
 				return -1;
 			}
-			printf("[Receive_thread] A new Node_thread with ID=%lu has been started.\n", new_id);
+			printf("\t[Receive] A new Node_thread with ID=%lu has been started.\n", new_id);
 
-			set_node_thread(node_information, new_id, new_handle);
+			set_node_thread(node_information, new_handle);
 			hl_insert_first(handles, new_handle);
 			current = current->next_node;
 		}
@@ -188,7 +188,7 @@ int main() {
 	DWORD thread_id = -1;
 	HANDLE thread_handle = NULL;
 
-	ClientInformation* client_information = init_client_information(&thread_id, students, ring_buffer, nodes, has_client_semaphore, exit_signal, ring_buffer_semaphore);
+	ClientInformation* client_information = init_client_information(students, ring_buffer, nodes, has_client_semaphore, exit_signal, ring_buffer_semaphore);
 	if (IS_NULL(client_information)) {
 
 		SAFE_HANDLE(thread_exit_handle);
@@ -220,8 +220,7 @@ int main() {
 
 	// Coordinator thread
 	DWORD coordinator_id = -1;
-	CoordinatorInformation* coordinator_information = init_coordinator_information(&coordinator_id
-																				   , students
+	CoordinatorInformation* coordinator_information = init_coordinator_information(  students
 																				   , ring_buffer
 																				   , nodes
 																				   , exit_signal
@@ -248,6 +247,7 @@ int main() {
 		return -1;
 	}
 
+	hl_insert_first(handles, coordinator_handle);
 
 	while (WaitForSingleObject(exit_signal_semaphore, 10) == WAIT_TIMEOUT) {
 
@@ -263,7 +263,7 @@ int main() {
 				closesocket(client_information->client_socket);
 				thread_handle = NULL;
 			}
-			printf("[Receive_thread] Waiting for new client.\n");
+			printf("\t[Receive] Waiting for new client.\n");
 		}
 
 		if (client_counter == 0) {
@@ -276,7 +276,7 @@ int main() {
 		i_result = select(0, &read_fds, NULL, NULL, &timeVal);
 
 		if (i_result == SOCKET_ERROR) {
-			printf("Error %d \n", WSAGetLastError());
+			printf("\t[Receive] Error %d \n", WSAGetLastError());
 			break;
 		}
 		else if (i_result == 0) {
@@ -291,7 +291,7 @@ int main() {
 				set_client_socket(client_information, accepted_socket);
 
 				thread_handle = CreateThread(NULL, 0, &client_th, client_information, 0, &thread_id);
-				printf("[Receive_thread] A new Client_thread with ID=%lu has been started.\n", thread_id);
+				printf("\t[Receive] A new Client_thread with ID=%lu has been started.\n", thread_id);
 
 				client_counter = 1;
 			}
@@ -319,8 +319,8 @@ int main() {
 					break;
 				}
 
-				printf("[Receive_thread] A new Integrity_update_thread with ID=%lu has been started.\n", new_id);
-				set_node_thread(node_information, new_id, new_handle);
+				printf("\t[Receive] A new Integrity_update_thread with ID=%lu has been started.\n", new_id);
+				set_node_thread(node_information, new_handle);
 			}
 		}
 	}
@@ -336,7 +336,6 @@ int main() {
 		SAFE_HANDLE(thread_handle);
 	}
 	else {
-
 		// Client disconnected
 
 		ReleaseSemaphore(exit_signal, 1 + nodes->counter, NULL);

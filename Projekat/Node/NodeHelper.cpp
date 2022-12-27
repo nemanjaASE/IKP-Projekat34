@@ -232,7 +232,7 @@ bool nh_send_header(SOCKET socket, unsigned char* header) {
 
 		select_function(socket, WRITE);
 
-		i_result = send(socket, (char*)header + bytes_sent, header_size - bytes_sent, 0);
+		i_result = send(socket, (char*)header + bytes_sent, (int)header_size - bytes_sent, 0);
 
 		if (i_result == SOCKET_ERROR || i_result == 0)
 		{
@@ -393,7 +393,7 @@ void wait_for_all_threads(HandleList* handles) {
 
 	NodeHandle* current = handles->head;
 
-	printf("Number of handles: %u\n", handles->counter);
+	printf("---- Number of handles: %u\n", handles->counter);
 
 	for (unsigned int i = 0; i < handles->counter; i++) {
 		WaitForSingleObject(current->thread_handle, INFINITE);
@@ -475,7 +475,7 @@ bool nh_send_header(Node* head, unsigned char* header) {
 		do {
 			select_function(current->node_socket, WRITE);
 
-			i_result = send(current->node_socket, (char*)header + bytes_sent, header_size - bytes_sent, 0);
+			i_result = send(current->node_socket, (char*)header + bytes_sent, (unsigned int)header_size - bytes_sent, 0);
 
 			if (i_result == SOCKET_ERROR || i_result == 0)
 			{
@@ -497,7 +497,7 @@ bool nh_send_header(Node* head, unsigned char* header) {
 	return true;
 }
 
-bool nh_send_student(Node* head, char* body, int body_len) {
+bool nh_send_student(Node* head, char* body, unsigned int body_len) {
 
 	Node* current = head;
 	int i_result = 0;
@@ -560,14 +560,14 @@ bool nh_send_decision(Node* head, char* message) {
 
 bool nh_receive_header(SOCKET socket, Header* header) {
 
-	int bytes_recieved = 0;
+	unsigned int bytes_recieved = 0;
 	int i_result = 0;
-	int header_size = 3 * sizeof(uint8_t);
+	size_t header_size = 3 * sizeof(uint8_t);
 
 	do
 	{
 		select_function(socket, READ);
-		i_result = recv(socket, (char*)header + bytes_recieved, header_size - bytes_recieved, 0);
+		i_result = recv(socket, (char*)header + bytes_recieved, (unsigned int)header_size - bytes_recieved, 0);
 		if (i_result == SOCKET_ERROR || i_result == 0) {
 			return false;
 		}
@@ -578,19 +578,70 @@ bool nh_receive_header(SOCKET socket, Header* header) {
 	return true;
 }
 
-bool nh_receive_student(SOCKET socket, char* buffer, int body_size) {
+bool nh_receive_header(SOCKET socket, Header* header, HANDLE exit_semaphore) {
 
-	int bytes_recieved = 0;
+	int i_result = -1;
+	unsigned int bytes_recieved = 0;
+	size_t header_size = 3 * sizeof(uint8_t);
+
+	do
+	{
+		if (select_function(socket, READ, exit_semaphore) == 1) {
+
+			i_result = recv(socket, (char*)header + bytes_recieved, (unsigned int)header_size - bytes_recieved, 0);
+			if (i_result == SOCKET_ERROR || i_result == 0) {
+				return false;
+			}
+			bytes_recieved += i_result;
+		}
+		else {
+			return false;
+		}
+
+	} while (bytes_recieved < header_size);
+
+	return true;
+}
+
+bool nh_receive_student(SOCKET socket, char* buffer, unsigned int body_size) {
+
+	unsigned int bytes_recieved = 0;
 	int i_result = 0;
 
 	do
 	{
 		select_function(socket, READ);
-		i_result = recv(socket, buffer + bytes_recieved, body_size - bytes_recieved, 0);
+		i_result = recv(socket, buffer + bytes_recieved, (unsigned int)body_size - bytes_recieved, 0);
 		if (i_result == SOCKET_ERROR || i_result == 0) {
 			break;
 		}
 		bytes_recieved += i_result;
+
+	} while (bytes_recieved < body_size);
+
+	buffer[body_size] = '\0';
+
+	return true;
+}
+
+bool nh_receive_student(SOCKET socket, char* buffer, unsigned int body_size, HANDLE exit_semaphore) {
+
+	unsigned int bytes_recieved = 0;
+	int i_result = 0;
+
+	do
+	{
+		if (select_function(socket, READ, exit_semaphore) == 1) {
+
+			i_result = recv(socket, buffer + bytes_recieved, (unsigned int)body_size - bytes_recieved, 0);
+			if (i_result == SOCKET_ERROR || i_result == 0) {
+				return false;
+			}
+			bytes_recieved += i_result;
+		}
+		else {
+			return false;
+		}
 
 	} while (bytes_recieved < body_size);
 

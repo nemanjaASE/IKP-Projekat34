@@ -117,13 +117,13 @@ uint8_t fill_header(Student student, unsigned char* header) {
 char* serialize_student(Student* student) {
 
 	char* buffer = NULL;
-	int first_name_len = strlen(student->first_name);
-	int last_name_len = strlen(student->last_name);
-	int index_len = strlen(student->index);
+	int first_name_len = (int)strlen(student->first_name);
+	int last_name_len = (int)strlen(student->last_name);
+	int index_len = (int)strlen(student->index);
 
 	uint8_t msg_len = first_name_len + last_name_len + index_len;
 
-	buffer = (char*)malloc(sizeof(char) * (msg_len + 1));
+	buffer = (char*)malloc(sizeof(char) * ((int64_t)msg_len + 1));
 	if (IS_NULL(buffer)) {
 		printf("Not enough memory.");
 		return NULL;
@@ -140,17 +140,17 @@ char* serialize_student(Student* student) {
 
 void deserialize_student(Student* student, char* buffer, Header header) {
 
-	char* first_name = (char*)calloc(header.first_name_len + 1, sizeof(char));
+	char* first_name = (char*)calloc((int64_t)header.first_name_len + 1, sizeof(char));
 	if (IS_NULL(first_name)) {
 		return;
 	}
 
-	char* last_name = (char*)calloc(header.last_name_len + 1, sizeof(char));
+	char* last_name = (char*)calloc((int64_t)header.last_name_len + 1, sizeof(char));
 	if (IS_NULL(last_name)) {
 		return;
 	}
 
-	char* index = (char*)calloc(header.index_len + 1, sizeof(char));
+	char* index = (char*)calloc((int64_t)header.index_len + 1, sizeof(char));
 	if (IS_NULL(index)) {
 		return;
 	}
