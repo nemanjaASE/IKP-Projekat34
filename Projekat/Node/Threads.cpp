@@ -557,9 +557,6 @@ void set_client_socket(ClientInformation* client_information, SOCKET socket) {
 }
 
 void free_client_information(ClientInformation* client_information) {
-
-	SAFE_HANDLE(client_information->exit_semaphore);
-	SAFE_HANDLE(client_information->has_client_semaphore);
 	closesocket(client_information->client_socket);
 
 	free(client_information);

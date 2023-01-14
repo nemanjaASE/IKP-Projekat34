@@ -1,11 +1,10 @@
 #include "Threads.h"
-#define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 
 int main() {
 
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_getch();
 
 	if (!initialize_windows_sockets()) {
 		return -1;
@@ -358,6 +357,9 @@ int main() {
 
 	SAFE_HANDLE(thread_exit_handle);
 	SAFE_HANDLE(exit_signal_semaphore);
+	SAFE_HANDLE(exit_signal);
+	SAFE_HANDLE(has_client_semaphore);
+	SAFE_HANDLE(ring_buffer_semaphore);
 
 	free(coordinator_information);
 	ht_free(students);
@@ -370,6 +372,8 @@ int main() {
 	closesocket(client_listen_socket);
 	closesocket(node_listen_socket);
 	WSACleanup();
+
+	getchar();
 
 	return 0;
 }
