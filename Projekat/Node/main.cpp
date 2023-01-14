@@ -4,8 +4,6 @@
 
 int main() {
 
-	_getch();
-
 	if (!initialize_windows_sockets()) {
 		return -1;
 	}
@@ -372,8 +370,6 @@ int main() {
 	closesocket(client_listen_socket);
 	closesocket(node_listen_socket);
 	WSACleanup();
-
-	getchar();
 
 	return 0;
 }
